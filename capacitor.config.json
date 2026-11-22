@@ -1,0 +1,8 @@
+{
+  "appId": "com.example.layoutstudio",
+  "appName": "LayoutStudio",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
