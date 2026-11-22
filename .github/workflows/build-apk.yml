@@ -25,11 +25,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: true
-
       - name: Accept Android SDK Licenses
         run: |
           yes | sdkmanager --licenses > /dev/null || true
