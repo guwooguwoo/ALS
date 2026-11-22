@@ -750,6 +750,30 @@
     </svg>
   </button>
 
+  <!-- 메인 화면 앱 종료 확인 팝업 모달 (기본 숨김) -->
+  <div id="exitAppModalOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-[2px] p-4 transition-opacity">
+    <div class="w-full max-w-xs rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] text-[#1D1B20] dark:text-[#E6E0E9] shadow-2xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 p-6 select-auto card-animate">
+      <h2 class="text-base font-bold mb-1.5">앱 종료</h2>
+      <p class="text-xs text-[#49454F] dark:text-[#CAC4D0] leading-relaxed mb-5">앱을 종료하시겠습니까?</p>
+      <div class="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          id="cancelExitAppBtn"
+          class="px-4 py-2 text-xs font-semibold rounded-full bg-[#ECE6F0] dark:bg-[#2B2930] text-[#1D1B20] dark:text-[#E6E0E9] hover:opacity-90 transition cursor-pointer"
+        >
+          취소
+        </button>
+        <button
+          type="button"
+          id="confirmExitAppBtn"
+          class="px-4 py-2 text-xs font-semibold rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] hover:opacity-90 active:scale-[0.98] transition cursor-pointer"
+        >
+          종료
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // =========================================================================
     // 상태 관리 및 로컬 스토리지 키
@@ -896,6 +920,90 @@
     const projectDescInput = document.getElementById('projectDescInput');
     const nameErrorMsg = document.getElementById('nameErrorMsg');
     const cancelProjectBtn = document.getElementById('cancelProjectBtn');
+    const exitAppModalOverlay = document.getElementById('exitAppModalOverlay');
+    const cancelExitAppBtn = document.getElementById('cancelExitAppBtn');
+    const confirmExitAppBtn = document.getElementById('confirmExitAppBtn');
+    let isExitModalOpen = false;
+
+    function setExitModalState(open) {
+      isExitModalOpen = open;
+      if (isExitModalOpen) {
+        exitAppModalOverlay.classList.remove('hidden');
+        exitAppModalOverlay.classList.add('flex');
+      } else {
+        exitAppModalOverlay.classList.add('hidden');
+        exitAppModalOverlay.classList.remove('flex');
+      }
+    }
+
+    function performAppExit() {
+      setExitModalState(false);
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.exitApp();
+        return;
+      }
+      if (navigator.app && typeof navigator.app.exitApp === 'function') {
+        navigator.app.exitApp();
+        return;
+      }
+      window.close();
+    }
+
+    function handleSystemBackNavigation() {
+      if (isExitModalOpen) {
+        setExitModalState(false);
+        return;
+      }
+      if (editingModalItemId) {
+        closeModalTextEditor();
+        return;
+      }
+      if (isExportImagePopupOpen) {
+        setExportImagePopupState(false);
+        return;
+      }
+      if (isModalListPopupOpen) {
+        setModalListPopupState(false);
+        return;
+      }
+      if (isLayerPopupOpen) {
+        setLayerPopupState(false);
+        return;
+      }
+      if (isCanvasListPopupOpen) {
+        setCanvasListPopupState(false);
+        return;
+      }
+      if (isWorkspaceSettingsOpen) {
+        setWorkspaceSettingsState(false);
+        return;
+      }
+      if (isWorkspaceMenuOpen) {
+        setWorkspaceMenuState(false);
+        return;
+      }
+      if (isModalOpen) {
+        setModalState(false);
+        return;
+      }
+      if (isSettingsOpen) {
+        setSettingsState(false);
+        return;
+      }
+      // 프로젝트 작업 화면에 있을 경우 앱 종료 대신 메인 프로젝트 목록으로 복귀
+      if (activeProjectId !== null || !workspaceCanvasView.classList.contains('hidden')) {
+        closeProjectWorkspace();
+        return;
+      }
+      // 메인 화면에서 뒤로가기를 누를 경우 종료 확인 팝업 표시
+      setExitModalState(true);
+    }
+
+    cancelExitAppBtn.addEventListener('click', () => setExitModalState(false));
+    confirmExitAppBtn.addEventListener('click', performAppExit);
+    exitAppModalOverlay.addEventListener('click', (e) => {
+      if (e.target === exitAppModalOverlay) setExitModalState(false);
+    });
 
     /**
      * 실행취소 / 다시실행 버튼 활성 상태 갱신 및 스냅샷 기록
@@ -3837,6 +3945,7 @@
     // ESC 키로 팝업 닫기
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if (isExitModalOpen) setExitModalState(false);
         if (isModalOpen) setModalState(false);
         if (isSettingsOpen) setSettingsState(false);
         if (isWorkspaceSettingsOpen) setWorkspaceSettingsState(false);
@@ -3914,6 +4023,19 @@
       applySettingsUI();
       loadProjects();
       renderProjects();
+
+      // 브라우저 및 안드로이드 WebView 뒤로가기(popstate / backbutton) 인터셉트
+      if (window.history && window.history.pushState) {
+        window.history.pushState({ appBackGuard: true }, '', window.location.href);
+        window.addEventListener('popstate', () => {
+          window.history.pushState({ appBackGuard: true }, '', window.location.href);
+          handleSystemBackNavigation();
+        });
+      }
+      document.addEventListener('backbutton', (e) => {
+        e.preventDefault();
+        handleSystemBackNavigation();
+      }, false);
     });
   </script>
 </body>
