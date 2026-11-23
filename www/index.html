@@ -491,11 +491,45 @@
           <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 max-h-44 flex items-center justify-center">
             <img id="exportImagePreviewImg" src="" alt="저장된 캔버스 미리보기" class="max-h-44 w-auto object-contain" />
           </div>
-          <p class="text-[10px] text-center text-slate-500 dark:text-slate-400">다운로드 폴더에 저장되었으며, 앱 내에서는 위 이미지를 길게 눌러 갤러리에 저장할 수 있습니다.</p>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              id="openFullImageViewerBtn"
+              class="py-1.5 px-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-semibold text-slate-800 dark:text-slate-100 transition cursor-pointer"
+            >
+              전체화면으로 보기
+            </button>
+            <button
+              type="button"
+              id="copyCanvasImageBtn"
+              class="py-1.5 px-2.5 rounded-lg bg-indigo-50 dark:bg-emerald-950/50 hover:bg-indigo-100 dark:hover:bg-emerald-900/60 text-[11px] font-semibold text-indigo-600 dark:text-emerald-400 transition cursor-pointer"
+            >
+              이미지 복사
+            </button>
+          </div>
+          <p class="text-[10px] text-center text-slate-500 dark:text-slate-400">위 이미지를 <b>길게 눌러 [이미지 저장]</b>을 선택하거나 전체화면에서 저장하세요.</p>
         </div>
 
         <p id="exportImageStatusText" class="hidden mt-3 text-[11px] font-semibold text-center text-indigo-600 dark:text-emerald-400"></p>
       </div>
+    </div>
+
+    <!-- 전체화면 이미지 저장 뷰어 오버레이 (앱 내 길게 눌러 저장용) -->
+    <div id="fullImageViewerOverlay" class="fixed inset-0 z-[70] hidden flex-col items-center justify-center bg-black/90 p-4">
+      <div class="w-full max-w-lg flex items-center justify-between mb-3 text-white">
+        <span id="fullImageViewerTitle" class="text-xs font-semibold truncate">캔버스 이미지</span>
+        <button
+          type="button"
+          id="closeFullImageViewerBtn"
+          class="px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-xs font-bold cursor-pointer"
+        >
+          닫기 ✕
+        </button>
+      </div>
+      <div class="flex-1 w-full flex items-center justify-center overflow-auto">
+        <img id="fullImageViewerImg" src="" alt="전체화면 캔버스 이미지" class="max-w-full max-h-[80vh] rounded-2xl shadow-2xl object-contain" />
+      </div>
+      <p class="mt-3 text-xs text-slate-300 text-center">이미지를 <b>길게 눌러 [이미지 저장 / 다운로드]</b>를 선택하세요.</p>
     </div>
 
     <!-- 레이어 관리 팝업 모달 -->
@@ -1115,7 +1149,15 @@
     const exportAllCanvasesDesc = document.getElementById('exportAllCanvasesDesc');
     const exportImagePreviewBox = document.getElementById('exportImagePreviewBox');
     const exportImagePreviewImg = document.getElementById('exportImagePreviewImg');
+    const openFullImageViewerBtn = document.getElementById('openFullImageViewerBtn');
+    const copyCanvasImageBtn = document.getElementById('copyCanvasImageBtn');
+    const fullImageViewerOverlay = document.getElementById('fullImageViewerOverlay');
+    const fullImageViewerTitle = document.getElementById('fullImageViewerTitle');
+    const fullImageViewerImg = document.getElementById('fullImageViewerImg');
+    const closeFullImageViewerBtn = document.getElementById('closeFullImageViewerBtn');
     const exportImageStatusText = document.getElementById('exportImageStatusText');
+    let lastExportedDataUrl = '';
+    let lastExportedFilename = 'canvas.png';
     const layerPopupOverlay = document.getElementById('layerPopupOverlay');
     const closeLayerPopupBtn = document.getElementById('closeLayerPopupBtn');
     const layerPopupList = document.getElementById('layerPopupList');
@@ -1369,226 +1411,312 @@
     }
 
     /**
-     * 모달 중앙 텍스트 및 전체 구성 텍스트·아이콘 편집 팝업 열기
+     * 네이티브 Canvas 2D 직접 렌더링으로 외부 폰트·CORS 오류 없이 즉시 순수 캔버스 PNG 생성
      */
-    function openModalTextEditor(itemId) {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject) return;
-      const item = currentProject.modals.find((m) => m.id === itemId);
-      if (!item) return;
-
-      const template = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['center-text-modal'];
-      editingModalItemId = itemId;
-
-      if (ORIENTABLE_TYPES.has(item.type)) {
-        modalOrientationSection.classList.remove('hidden');
-        updateOrientationButtonsUI(item.orientation || getDefaultOrientation(item.type));
-      } else {
-        modalOrientationSection.classList.add('hidden');
-      }
-
-      modalLabelInput.value = item.label || template.label;
-      modalDynamicTextsContainer.innerHTML = '';
-      modalDynamicIconsContainer.innerHTML = '';
-
-      const { textSlots, iconSlots } = collectEditableNodesFromTemplate(item);
-      const savedTexts = Array.isArray(item.customTexts) ? item.customTexts : [];
-      const savedIcons = Array.isArray(item.customIcons) ? item.customIcons : [];
-
-      if (textSlots.length > 0) {
-        const sectionTitle = document.createElement('p');
-        sectionTitle.className = 'text-[11px] font-bold text-slate-700 dark:text-slate-300 pt-1';
-        sectionTitle.textContent = '구성 텍스트 편집';
-        modalDynamicTextsContainer.appendChild(sectionTitle);
-
-        textSlots.forEach((slot, idx) => {
-          const currentVal = typeof savedTexts[idx] === 'string' ? savedTexts[idx] : slot.defaultVal;
-          const wrap = document.createElement('div');
-          wrap.innerHTML = `
-            <label class="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">텍스트 ${idx + 1}</label>
-            <input
-              type="text"
-              data-edit-text-idx="${idx}"
-              value="${escapeHTML(currentVal)}"
-              class="modal-part-text-input w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400"
-            />
-          `;
-          modalDynamicTextsContainer.appendChild(wrap);
-        });
-      }
-
-      if (iconSlots.length > 0) {
-        const iconHeader = document.createElement('p');
-        iconHeader.className = 'text-[11px] font-bold text-slate-700 dark:text-slate-300 pt-1';
-        iconHeader.textContent = '아이콘 편집 (비워두면 빈 공간)';
-        modalDynamicIconsContainer.appendChild(iconHeader);
-
-        iconSlots.forEach((slot, idx) => {
-          const currentIcon = typeof savedIcons[idx] === 'string' ? savedIcons[idx] : slot.defaultVal;
-          const wrap = document.createElement('div');
-          wrap.className = 'p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/80 space-y-1.5';
-          wrap.innerHTML = `
-            <div class="flex items-center justify-between gap-2">
-              <label class="text-[10px] font-medium text-slate-500 dark:text-slate-400">아이콘 ${idx + 1}</label>
-              <div class="flex items-center gap-1.5">
-                <button type="button" data-clear-icon-idx="${idx}" class="icon-clear-btn px-2 py-1 text-[10px] font-semibold text-slate-500 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-500 border border-slate-200/80 dark:border-slate-700 rounded-lg transition cursor-pointer">비움</button>
-                <input
-                  type="text"
-                  data-edit-icon-idx="${idx}"
-                  value="${escapeHTML(currentIcon)}"
-                  placeholder="없음"
-                  maxlength="4"
-                  class="modal-part-icon-input w-16 px-2 py-1 text-center text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 placeholder:text-[10px] placeholder:text-slate-400 focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400"
-                />
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-1">
-              ${ICON_PRESET_CHOICES.map((ic) => `<button type="button" data-pick-icon-idx="${idx}" data-icon-val="${escapeHTML(ic)}" class="icon-preset-pick-btn w-6 h-6 rounded-md bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 text-xs flex items-center justify-center cursor-pointer">${escapeHTML(ic)}</button>`).join('')}
-            </div>
-          `;
-          modalDynamicIconsContainer.appendChild(wrap);
-        });
-
-        modalDynamicIconsContainer.querySelectorAll('.icon-clear-btn').forEach((btn) => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const targetIdx = btn.dataset.clearIconIdx;
-            const targetInput = modalDynamicIconsContainer.querySelector(`.modal-part-icon-input[data-edit-icon-idx="${targetIdx}"]`);
-            if (targetInput) targetInput.value = '';
-          });
-        });
-
-        modalDynamicIconsContainer.querySelectorAll('.icon-preset-pick-btn').forEach((btn) => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const targetIdx = btn.dataset.pickIconIdx;
-            const targetInput = modalDynamicIconsContainer.querySelector(`.modal-part-icon-input[data-edit-icon-idx="${targetIdx}"]`);
-            if (targetInput) targetInput.value = btn.dataset.iconVal || '';
-          });
-        });
-      }
-
-      editModalTextOverlay.classList.remove('hidden');
-      editModalTextOverlay.classList.add('flex');
-      setTimeout(() => modalLabelInput.focus(), 30);
+    function drawRoundedRectPath(ctx, x, y, w, h, r) {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
     }
 
-    function closeModalTextEditor() {
-      editingModalItemId = null;
-      editModalTextOverlay.classList.add('hidden');
-      editModalTextOverlay.classList.remove('flex');
+    function wrapCanvasTextLines(ctx, text, maxWidth) {
+      const words = String(text || '').split(/\s+/);
+      const lines = [];
+      let current = '';
+      words.forEach((word) => {
+        const test = current ? `${current} ${word}` : word;
+        if (ctx.measureText(test).width > maxWidth && current) {
+          lines.push(current);
+          current = word;
+        } else {
+          current = test;
+        }
+      });
+      if (current) lines.push(current);
+      return lines;
     }
 
-    cancelModalTextBtn.addEventListener('click', closeModalTextEditor);
-    editModalTextOverlay.addEventListener('click', (e) => {
-      if (e.target === editModalTextOverlay) closeModalTextEditor();
-    });
+    async function capturePureCanvasImage(canvasModals) {
+      const isDark = appSettings.theme === 'dark';
+      const w = workspaceBoard.clientWidth || window.innerWidth;
+      const h = workspaceBoard.clientHeight || window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 2, 2);
 
-    saveModalTextBtn.addEventListener('click', () => {
-      if (!editingModalItemId) return;
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject) return;
-      const item = currentProject.modals.find((m) => m.id === editingModalItemId);
-      if (!item) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
 
-      const beforeSnapshot = JSON.stringify(currentProject.modals || []);
+      // 1) 테마 배경색 채우기
+      ctx.fillStyle = isDark ? '#141218' : '#FEF7FF';
+      ctx.fillRect(0, 0, w, h);
 
-      if (ORIENTABLE_TYPES.has(item.type)) {
-        const prevOrient = item.orientation || getDefaultOrientation(item.type);
-        const nextOrient = editingModalOrientation || prevOrient;
-        if (prevOrient !== nextOrient) {
-          item.orientation = nextOrient;
-          const template = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
-          const curW = typeof item.width === 'number' ? item.width : template.defaultWidth;
-          const curH = typeof item.height === 'number' ? item.height : template.defaultHeight;
-          item.width = curH;
-          item.height = curW;
+      // 2) 도트 그리드 그리기
+      if (appSettings.showGrid) {
+        ctx.fillStyle = isDark ? '#49454F' : '#CAC4D0';
+        for (let gx = 8; gx < w; gx += 16) {
+          for (let gy = 8; gy < h; gy += 16) {
+            ctx.beginPath();
+            ctx.arc(gx, gy, 1.1, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
 
-      const nextLabel = modalLabelInput.value.trim();
-      if (nextLabel) {
-        item.label = nextLabel;
-      }
+      // 3) 배치된 모달/제스처 요소 순차 렌더링
+      const items = Array.isArray(canvasModals) ? canvasModals : [];
+      items.forEach((item) => {
+        const template = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
+        const itemW = typeof item.width === 'number' ? item.width : template.defaultWidth;
+        const itemH = typeof item.height === 'number' ? item.height : template.defaultHeight;
+        const x = Number(item.x) || 0;
+        const y = Number(item.y) || 0;
+        const primaryText = Array.isArray(item.customTexts) && item.customTexts.length > 0
+          ? item.customTexts[0]
+          : (typeof item.text === 'string' ? item.text : template.defaultText);
 
-      const textInputs = Array.from(modalDynamicTextsContainer.querySelectorAll('.modal-part-text-input'));
-      if (textInputs.length > 0) {
-        item.customTexts = textInputs.map((inp) => inp.value);
-        item.text = textInputs[0].value;
-      }
-
-      const iconInputs = Array.from(modalDynamicIconsContainer.querySelectorAll('.modal-part-icon-input'));
-      if (iconInputs.length > 0) {
-        item.customIcons = iconInputs.map((inp) => inp.value.trim());
-      }
-
-      pushUndoSnapshot(beforeSnapshot);
-      saveProjects();
-      renderWorkspaceLayers();
-      closeModalTextEditor();
-    });
-    // 프로젝트 ZIP 백업 내보내기 (projects.json + 프로젝트별 개별 JSON 포함)
-    backupProjectsBtn.addEventListener('click', async () => {
-      try {
-        const jsonStr = buildBackupJsonString();
-        const dateStamp = new Date().toISOString().slice(0, 10);
-        backupJsonTextarea.value = jsonStr;
-
-        if (typeof JSZip === 'undefined') {
-          throw new Error('JSZip 라이브러리를 불러오지 못했습니다.');
-        }
-
-        const zip = new JSZip();
-        zip.file('projects.json', jsonStr);
-
-        const folder = zip.folder('projects');
-        if (folder && Array.isArray(projects)) {
-          projects.forEach((proj, idx) => {
-            const safeName = (proj.name || `project_${idx + 1}`).replace(/[\\/:*?"<>|]/g, '_');
-            folder.file(`${idx + 1}_${safeName}.json`, JSON.stringify(proj, null, 2));
-          });
-        }
-
-        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-        const filename = `android-layout-studio-backup-${dateStamp}.zip`;
-
-        // 1) Web Share API 파일 공유 우선 시도
-        if (navigator.share) {
-          try {
-            const shareFile = new File([zipBlob], filename, { type: 'application/zip' });
-            if (!navigator.canShare || navigator.canShare({ files: [shareFile] })) {
-              await navigator.share({
-                files: [shareFile],
-                title: 'Android Layout & Modal Studio ZIP 백업',
-                text: `총 ${projects.length}개 프로젝트 백업 ZIP 파일입니다.`
-              });
-              showBackupMessage(`총 ${projects.length}개 프로젝트 ZIP 백업 파일이 공유되었습니다.`);
-              return;
+        // 제스처 전용 요소 렌더링
+        if (String(item.type || '').startsWith('gesture-')) {
+          ctx.save();
+          if (item.type.startsWith('gesture-slide-')) {
+            ctx.fillStyle = 'rgba(99, 102, 241, 0.35)';
+            ctx.strokeStyle = 'rgba(99, 102, 241, 0.75)';
+            ctx.lineWidth = 2.5;
+            const cx = x + itemW / 2;
+            const cy = y + itemH / 2;
+            ctx.beginPath();
+            if (item.type === 'gesture-slide-up') {
+              ctx.moveTo(cx, y + itemH * 0.08);
+              ctx.lineTo(x + itemW * 0.9, y + itemH * 0.36);
+              ctx.lineTo(x + itemW * 0.68, y + itemH * 0.36);
+              ctx.lineTo(x + itemW * 0.68, y + itemH * 0.92);
+              ctx.lineTo(x + itemW * 0.32, y + itemH * 0.92);
+              ctx.lineTo(x + itemW * 0.32, y + itemH * 0.36);
+              ctx.lineTo(x + itemW * 0.1, y + itemH * 0.36);
+            } else if (item.type === 'gesture-slide-down') {
+              ctx.moveTo(cx, y + itemH * 0.92);
+              ctx.lineTo(x + itemW * 0.9, y + itemH * 0.64);
+              ctx.lineTo(x + itemW * 0.68, y + itemH * 0.64);
+              ctx.lineTo(x + itemW * 0.68, y + itemH * 0.08);
+              ctx.lineTo(x + itemW * 0.32, y + itemH * 0.08);
+              ctx.lineTo(x + itemW * 0.32, y + itemH * 0.64);
+              ctx.lineTo(x + itemW * 0.1, y + itemH * 0.64);
+            } else if (item.type === 'gesture-slide-left') {
+              ctx.moveTo(x + itemW * 0.08, cy);
+              ctx.lineTo(x + itemW * 0.36, y + itemH * 0.1);
+              ctx.lineTo(x + itemW * 0.36, y + itemH * 0.32);
+              ctx.lineTo(x + itemW * 0.92, y + itemH * 0.32);
+              ctx.lineTo(x + itemW * 0.92, y + itemH * 0.68);
+              ctx.lineTo(x + itemW * 0.36, y + itemH * 0.68);
+              ctx.lineTo(x + itemW * 0.36, y + itemH * 0.9);
+            } else {
+              ctx.moveTo(x + itemW * 0.92, cy);
+              ctx.lineTo(x + itemW * 0.64, y + itemH * 0.1);
+              ctx.lineTo(x + itemW * 0.64, y + itemH * 0.32);
+              ctx.lineTo(x + itemW * 0.08, y + itemH * 0.32);
+              ctx.lineTo(x + itemW * 0.08, y + itemH * 0.68);
+              ctx.lineTo(x + itemW * 0.64, y + itemH * 0.68);
+              ctx.lineTo(x + itemW * 0.64, y + itemH * 0.9);
             }
-          } catch (shareErr) {
-            if (shareErr && shareErr.name === 'AbortError') return;
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          } else {
+            const tx = x + itemW * 0.44;
+            const ty = y + itemH * 0.32;
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(tx, ty, 18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            if (item.type === 'gesture-double-tap-finger') {
+              ctx.beginPath();
+              ctx.arc(tx, ty, 25, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+            ctx.font = 'bold 28px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = isDark ? '#E6E0E9' : '#1D1B20';
+            ctx.fillText('👆', tx + 4, ty + 16);
+          }
+          ctx.restore();
+          return;
+        }
+
+        // 일반 모달 / UI 컴포넌트 카드 렌더링
+        ctx.save();
+        ctx.shadowColor = isDark ? 'rgba(0, 0, 0, 0.45)' : 'rgba(15, 23, 42, 0.12)';
+        ctx.shadowBlur = 14;
+        ctx.shadowOffsetY = 4;
+
+        const isPrimaryFilled = item.type === 'filled-button' || item.type === 'onboarding-coach-modal' || item.type === 'split-button';
+        const isDarkBanner = item.type === 'snackbar' || item.type === 'tooltip-bubble' || item.type === 'floating-toolbar';
+        const isDashed = item.type === 'empty-box' || item.type === 'drag-handle-guide' || item.type === 'file-uploader-dropzone';
+
+        if (isPrimaryFilled) {
+          ctx.fillStyle = isDark ? '#D0BCFF' : '#6750A4';
+        } else if (isDarkBanner) {
+          ctx.fillStyle = isDark ? '#E6E0E9' : '#313033';
+        } else {
+          ctx.fillStyle = isDark ? '#211F26' : '#F3EDF7';
+        }
+
+        const radius = itemH <= 56 ? Math.min(24, itemH / 2) : 24;
+        drawRoundedRectPath(ctx, x, y, itemW, itemH, radius);
+        ctx.fill();
+
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = isDark ? '#49454F' : '#CAC4D0';
+        ctx.lineWidth = isDashed ? 1.8 : 1.2;
+        if (isDashed) ctx.setLineDash([5, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 내부 텍스트 렌더링
+        if (isPrimaryFilled) {
+          ctx.fillStyle = isDark ? '#381E72' : '#FFFFFF';
+        } else if (isDarkBanner) {
+          ctx.fillStyle = isDark ? '#313033' : '#F4EFF4';
+        } else {
+          ctx.fillStyle = isDark ? '#E6E0E9' : '#1D1B20';
+        }
+
+        ctx.font = 'bold 13px "Noto Sans KR", Inter, sans-serif';
+        ctx.textBaseline = 'middle';
+
+        const isCompact = itemH <= 64 || item.type === 'center-text-modal' || item.type === 'empty-box' || item.type === 'empty-solid-rect';
+        if (isCompact) {
+          ctx.textAlign = 'center';
+          const lines = wrapCanvasTextLines(ctx, primaryText, Math.max(40, itemW - 24)).slice(0, 2);
+          const lineH = 18;
+          const startY = y + itemH / 2 - ((lines.length - 1) * lineH) / 2;
+          lines.forEach((line, idx) => {
+            ctx.fillText(line, x + itemW / 2, startY + idx * lineH);
+          });
+        } else {
+          ctx.textAlign = 'left';
+          const titleLines = wrapCanvasTextLines(ctx, primaryText, Math.max(40, itemW - 32)).slice(0, 2);
+          titleLines.forEach((line, idx) => {
+            ctx.fillText(line, x + 16, y + 26 + idx * 18);
+          });
+
+          const extraTexts = Array.isArray(item.customTexts) ? item.customTexts.slice(1, 4) : [];
+          if (extraTexts.length > 0) {
+            ctx.font = '11px "Noto Sans KR", Inter, sans-serif';
+            ctx.fillStyle = isDark ? '#CAC4D0' : '#49454F';
+            extraTexts.forEach((sub, idx) => {
+              const clipped = sub.length > 26 ? `${sub.slice(0, 25)}…` : sub;
+              ctx.fillText(clipped, x + 16, y + 54 + titleLines.length * 14 + idx * 16);
+            });
+          }
+        }
+        ctx.restore();
+      });
+
+      return canvas.toDataURL('image/png');
+    }
+
+    openExportImagePopupBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setExportImagePopupState(true);
+    });
+
+    closeExportImagePopupBtn.addEventListener('click', () => setExportImagePopupState(false));
+    exportImagePopupOverlay.addEventListener('click', (e) => {
+      if (e.target === exportImagePopupOverlay) setExportImagePopupState(false);
+    });
+
+    exportSingleCanvasBtn.addEventListener('click', async () => {
+      try {
+        const currentProject = projects.find((p) => p.id === activeProjectId);
+        if (!currentProject) return;
+        ensureProjectCanvases(currentProject);
+
+        exportImageStatusText.textContent = '현재 캔버스 이미지를 생성 중입니다...';
+        exportImageStatusText.classList.remove('hidden');
+
+        const safeTitle = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
+        const filename = `${safeTitle}_canvas_${activeCanvasIndex + 1}.png`;
+        const dataUrl = await capturePureCanvasImage(currentProject.modals);
+
+        exportImagePreviewImg.src = dataUrl;
+        exportImagePreviewBox.classList.remove('hidden');
+
+        const result = await saveOrShareCanvasPng(dataUrl, filename);
+        if (result === 'shared') {
+          exportImageStatusText.textContent = `캔버스 ${activeCanvasIndex + 1} 공유/저장 창이 열렸습니다.`;
+        } else {
+          exportImageStatusText.textContent = `이미지가 생성되었습니다. 아래 미리보기를 길게 누르거나 [전체화면으로 보기]에서 저장하세요.`;
+        }
+      } catch (err) {
+        exportImageStatusText.textContent = `이미지 생성 오류: ${err && err.message ? err.message : '알 수 없는 오류'}`;
+        exportImageStatusText.classList.remove('hidden');
+      }
+    });
+
+    exportAllCanvasesBtn.addEventListener('click', async () => {
+      try {
+        const currentProject = projects.find((p) => p.id === activeProjectId);
+        if (!currentProject) return;
+        const canvases = ensureProjectCanvases(currentProject);
+        const safeTitle = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
+
+        exportImageStatusText.classList.remove('hidden');
+        const filesToShare = [];
+        let lastDataUrl = '';
+
+        for (let i = 0; i < canvases.length; i++) {
+          exportImageStatusText.textContent = `전체 캔버스 생성 중 (${i + 1} / ${canvases.length})...`;
+          const dataUrl = await capturePureCanvasImage(canvases[i].modals);
+          lastDataUrl = dataUrl;
+          const filename = `${safeTitle}_canvas_${i + 1}.png`;
+          if (navigator.share) {
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            filesToShare.push(new File([blob], filename, { type: 'image/png' }));
+          } else {
+            await saveOrShareCanvasPng(dataUrl, filename);
+            await new Promise((resolve) => setTimeout(resolve, 180));
           }
         }
 
-        // 2) Android WebView / 모바일 브라우저 호환 Base64 Data URI 다운로드 + Blob 보조
-        const zipBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
-        const dataUri = `data:application/zip;base64,${zipBase64}`;
-        const a = document.createElement('a');
-        a.href = dataUri;
-        a.download = filename;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => a.remove(), 2000);
+        if (lastDataUrl) {
+          exportImagePreviewImg.src = lastDataUrl;
+          exportImagePreviewBox.classList.remove('hidden');
+        }
 
-        textBackupBox.classList.remove('hidden');
-        showBackupMessage(`ZIP 파일(${filename}) 다운로드를 요청했습니다. 앱 내 미리보기에서 파일이 보이지 않으면 아래 [JSON 복사]로 백업하세요.`);
+        if (filesToShare.length > 0 && navigator.share) {
+          try {
+            if (!navigator.canShare || navigator.canShare({ files: filesToShare })) {
+              await navigator.share({
+                files: filesToShare,
+                title: `${currentProject.name} 전체 캔버스`
+              });
+              exportImageStatusText.textContent = `총 ${canvases.length}개 캔버스 이미지 공유 창이 열렸습니다.`;
+              return;
+            }
+          } catch (err) {
+            if (err && err.name === 'AbortError') return;
+          }
+        }
+
+        exportImageStatusText.textContent = `총 ${canvases.length}개 캔버스 이미지가 생성되었습니다. 아래 미리보기를 길게 눌러 저장하세요.`;
       } catch (err) {
-        textBackupBox.classList.remove('hidden');
-        backupJsonTextarea.value = buildBackupJsonString();
-        showBackupMessage('ZIP 파일 공유/저장이 제한된 환경입니다. 아래 JSON 텍스트를 복사해 백업해 주세요.', true);
+        exportImageStatusText.textContent = `전체 이미지 생성 오류: ${err && err.message ? err.message : '알 수 없는 오류'}`;
+        exportImageStatusText.classList.remove('hidden');
       }
     });
 
@@ -5090,6 +5218,9 @@
     }
 
     async function saveOrShareCanvasPng(dataUrl, filename) {
+      lastExportedDataUrl = dataUrl;
+      lastExportedFilename = filename;
+
       // 1) 모바일/앱에서 시스템 공유 시트(갤러리 저장, 카톡 전송 등) 지원 시 우선 시도
       if (navigator.share) {
         try {
@@ -5108,32 +5239,151 @@
         }
       }
 
-      // 2) 브라우저 기본 다운로드(내 파일 > Download 폴더) 실행
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = filename;
-      link.target = '_blank';
-      link.rel = 'noopener';
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => link.remove(), 1500);
+      // 2) 일반 브라우저 및 WebView DownloadListener 호환 다운로드
+      try {
+        const res = await fetch(dataUrl);
+        const rawBlob = await res.blob();
+        const downloadBlob = new Blob([rawBlob], { type: 'application/octet-stream' });
+        const blobUrl = URL.createObjectURL(downloadBlob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          link.remove();
+          URL.revokeObjectURL(blobUrl);
+        }, 2000);
+      } catch (e) {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
       return 'downloaded';
     }
 
+    openFullImageViewerBtn.addEventListener('click', () => {
+      if (!lastExportedDataUrl) return;
+      fullImageViewerTitle.textContent = lastExportedFilename;
+      fullImageViewerImg.src = lastExportedDataUrl;
+      fullImageViewerOverlay.classList.remove('hidden');
+      fullImageViewerOverlay.classList.add('flex');
+    });
+
+    closeFullImageViewerBtn.addEventListener('click', () => {
+      fullImageViewerOverlay.classList.add('hidden');
+      fullImageViewerOverlay.classList.remove('flex');
+    });
+
+    fullImageViewerOverlay.addEventListener('click', (e) => {
+      if (e.target === fullImageViewerOverlay) {
+        fullImageViewerOverlay.classList.add('hidden');
+        fullImageViewerOverlay.classList.remove('flex');
+      }
+    });
+
+    copyCanvasImageBtn.addEventListener('click', async () => {
+      if (!lastExportedDataUrl) return;
+      try {
+        const res = await fetch(lastExportedDataUrl);
+        const blob = await res.blob();
+        if (navigator.clipboard && window.ClipboardItem) {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          exportImageStatusText.textContent = '이미지가 클립보드에 복사되었습니다. 메신저나 메모에 붙여넣기 하세요.';
+          exportImageStatusText.classList.remove('hidden');
+          return;
+        }
+      } catch (err) {
+        // 클립보드 이미지 미지원 시 전체화면 뷰어 안내
+      }
+      openFullImageViewerBtn.click();
+    });
+
     /**
-     * 팝업과 모든 UI 버튼을 제외하고 캔버스 배경 · 격자 · 배치된 모달만 순수 캡처
+     * 실제 화면에 표시 중인 프로젝트 캔버스 스크린샷 촬영 (플로팅 버튼·팝업 자동 제외)
      */
     async function capturePureCanvasImage(canvasModals) {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      const isCurrentActiveCanvas =
+        currentProject &&
+        Array.isArray(currentProject.canvases) &&
+        currentProject.canvases[activeCanvasIndex] &&
+        currentProject.canvases[activeCanvasIndex].modals === canvasModals;
+
+      // 현재 보고 있는 캔버스라면 실제 DOM(workspaceBoard)을 직접 스크린샷 촬영
+      if (isCurrentActiveCanvas) {
+        const uiElementsToHide = [
+          workspaceUiToggleBtn,
+          workspaceTitleBubble,
+          workspacePrevCanvasBtn,
+          workspaceSettingsBtn,
+          workspaceNewCanvasBtn,
+          workspaceUndoBtn,
+          workspaceRedoBtn,
+          workspaceBackBtn,
+          workspaceAddBtn,
+          snapGuideLayer,
+          exportImagePopupOverlay
+        ];
+
+        const prevSelectedId = selectedModalId;
+        const hiddenStates = uiElementsToHide.map((el) => el && el.classList.contains('hidden'));
+
+        try {
+          // 선택 테두리·상단 편집 바 및 모든 플로팅 UI/팝업 일시 숨김
+          selectedModalId = null;
+          renderWorkspaceLayers();
+          uiElementsToHide.forEach((el) => {
+            if (el) el.classList.add('hidden');
+          });
+          exportImagePopupOverlay.classList.remove('flex');
+
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+          const isDark = appSettings.theme === 'dark';
+          const renderedCanvas = await html2canvas(workspaceBoard, {
+            backgroundColor: isDark ? '#141218' : '#FEF7FF',
+            scale: Math.min(window.devicePixelRatio || 2, 2),
+            useCORS: true,
+            logging: false,
+            scrollX: 0,
+            scrollY: 0,
+            width: workspaceBoard.clientWidth || window.innerWidth,
+            height: workspaceBoard.clientHeight || window.innerHeight
+          });
+          return renderedCanvas.toDataURL('image/png');
+        } finally {
+          // 촬영 직후 원래 선택 상태와 팝업/플로팅 UI 즉시 복원
+          uiElementsToHide.forEach((el, idx) => {
+            if (el && !hiddenStates[idx]) {
+              el.classList.remove('hidden');
+            }
+          });
+          if (isExportImagePopupOpen) {
+            exportImagePopupOverlay.classList.remove('hidden');
+            exportImagePopupOverlay.classList.add('flex');
+          }
+          selectedModalId = prevSelectedId;
+          renderWorkspaceLayers();
+        }
+      }
+
+      // 다른 페이지 캔버스(전체 캔버스 저장 시)는 뷰포트 내 렌더 스테이지에서 스크린샷 촬영
       const isDark = appSettings.theme === 'dark';
       const w = workspaceBoard.clientWidth || window.innerWidth;
       const h = workspaceBoard.clientHeight || window.innerHeight;
 
       const stage = document.createElement('div');
       stage.style.position = 'fixed';
-      stage.style.left = '-10000px';
+      stage.style.left = '0';
       stage.style.top = '0';
       stage.style.width = `${w}px`;
       stage.style.height = `${h}px`;
+      stage.style.zIndex = '45';
       stage.style.overflow = 'hidden';
       stage.style.backgroundColor = isDark ? '#141218' : '#FEF7FF';
 
@@ -5164,6 +5414,7 @@
 
       document.body.appendChild(stage);
       try {
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         const renderedCanvas = await html2canvas(stage, {
           backgroundColor: isDark ? '#141218' : '#FEF7FF',
           scale: Math.min(window.devicePixelRatio || 2, 2),
