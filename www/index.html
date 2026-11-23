@@ -3681,8 +3681,55 @@
 
     async function shareImageFilesNow(items, shareTitle) {
       if (!Array.isArray(items) || items.length === 0) return false;
-      const files = items.map((it) => it.file);
 
+      // 1) Android APK (Capacitor 네이티브 환경): Filesystem(Directory.Cache) + Share.share 우선 실행
+      const cap = window.Capacitor;
+      const plugins = cap && (cap.Plugins || (typeof cap.getPlugins === 'function' ? cap.getPlugins() : null));
+      const FilesystemPlugin = plugins && plugins.Filesystem;
+      const SharePlugin = plugins && plugins.Share;
+
+      if (cap && (cap.isNativePlatform ? cap.isNativePlatform() : Boolean(FilesystemPlugin && SharePlugin))) {
+        try {
+          if (FilesystemPlugin && SharePlugin) {
+            const uris = [];
+            for (const item of items) {
+              const base64Data = (item.dataUrl.split(',')[1] || '').trim();
+              const writeRes = await FilesystemPlugin.writeFile({
+                path: item.filename,
+                data: base64Data,
+                directory: 'CACHE'
+              });
+              if (writeRes && writeRes.uri) {
+                uris.push(writeRes.uri);
+              }
+            }
+
+            if (uris.length > 0) {
+              if (uris.length === 1) {
+                await SharePlugin.share({
+                  title: shareTitle || items[0].filename,
+                  url: uris[0],
+                  dialogTitle: '이미지 공유 및 저장'
+                });
+              } else {
+                await SharePlugin.share({
+                  title: shareTitle || '캔버스 이미지 공유',
+                  files: uris,
+                  dialogTitle: '이미지 공유 및 저장'
+                });
+              }
+              return true;
+            }
+          }
+        } catch (capErr) {
+          if (capErr && (capErr.message === 'Share canceled' || capErr.name === 'AbortError')) {
+            return true;
+          }
+        }
+      }
+
+      // 2) 일반 웹 브라우저 환경: Web Share API 파일 공유
+      const files = items.map((it) => it.file);
       if (typeof navigator.share === 'function') {
         try {
           if (!navigator.canShare || navigator.canShare({ files })) {
