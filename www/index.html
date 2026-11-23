@@ -3288,6 +3288,9 @@
       if (!targetProject) return;
 
       activeProjectId = projectId;
+      if (window.history && window.history.pushState) {
+        window.history.pushState({ workspaceView: true, projectId }, '', window.location.href);
+      }
       activeCanvasIndex = 0;
       ensureProjectCanvases(targetProject);
       selectedModalId = null;
@@ -4190,16 +4193,68 @@
       }
     });
 
-    // 브라우저/모바일 뒤로가기 제스처 시 프로젝트 내부면 프로젝트 목록으로, 메인 화면이면 종료 확인 팝업 표시
+    // 브라우저/안드로이드 시스템 네비게이션 뒤로가기 감지:
+    // 1) 프로젝트 작업 캔버스 내부일 경우 앱이 종료되지 않고 프로젝트 목록으로 복귀
+    // 2) 메인 프로젝트 목록 화면일 경우에만 종료 확인 팝업 표시
     if (window.history && window.history.pushState) {
+      window.history.replaceState({ mainScreenRoot: true }, '', window.location.href);
       window.history.pushState({ mainScreenGuard: true }, '', window.location.href);
+
       window.addEventListener('popstate', () => {
-        window.history.pushState({ mainScreenGuard: true }, '', window.location.href);
         if (activeProjectId) {
+          // 열려 있는 내부 팝업이 있으면 먼저 닫고, 없으면 프로젝트 목록으로 나감
+          if (isCanvasListPopupOpen) {
+            setCanvasListPopupState(false);
+            window.history.pushState({ workspaceView: true, projectId: activeProjectId }, '', window.location.href);
+            return;
+          }
+          if (isExportImagePopupOpen) {
+            setExportImagePopupState(false);
+            window.history.pushState({ workspaceView: true, projectId: activeProjectId }, '', window.location.href);
+            return;
+          }
+          if (isWorkspaceSettingsOpen) {
+            setWorkspaceSettingsState(false);
+            window.history.pushState({ workspaceView: true, projectId: activeProjectId }, '', window.location.href);
+            return;
+          }
+          if (editingModalItemId) {
+            closeModalTextEditor();
+            window.history.pushState({ workspaceView: true, projectId: activeProjectId }, '', window.location.href);
+            return;
+          }
+          if (isLayerPopupOpen) {
+            setLayerPopupState(false);
+            window.history.pushState({ workspaceView: true, projectId: activeProjectId }, '', window.location.href);
+            return;
+          }
+          if (isModalListPopupOpen) {
+            setModalListPopupState(false);
+            window.history.pushState({ workspaceView: true, projectId: activeProjectId }, '', window.location.href);
+            return;
+          }
+          if (isWorkspaceMenuOpen) {
+            setWorkspaceMenuState(false);
+            window.history.pushState({ workspaceView: true, projectId: activeProjectId }, '', window.location.href);
+            return;
+          }
+
           closeProjectWorkspace();
+          window.history.pushState({ mainScreenGuard: true }, '', window.location.href);
           return;
         }
-        if (!isModalOpen && !isSettingsOpen) {
+
+        // 메인 프로젝트 목록 화면에서의 시스템 뒤로가기 처리
+        window.history.pushState({ mainScreenGuard: true }, '', window.location.href);
+        if (isModalOpen) {
+          setModalState(false);
+          return;
+        }
+        if (isSettingsOpen) {
+          setSettingsState(false);
+          return;
+        }
+        if (!isExitConfirmOpen) {
           setExitConfirmState(true);
         }
       });
