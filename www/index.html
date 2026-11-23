@@ -1941,7 +1941,9 @@
           const startY = e.clientY;
           const origX = item.x;
           const origY = item.y;
-          const topOffset = bodyBox ? bodyBox.offsetTop : 26;
+          const topOffset = bodyBox && topBarEl
+            ? (topBarEl.classList.contains('order-2') ? 0 : bodyBox.offsetTop)
+            : 26;
           layerEl.setPointerCapture(e.pointerId);
 
           const onPointerMove = (moveEvent) => {
@@ -2046,8 +2048,11 @@
             const otherTpl = COMPONENT_TEMPLATES[other.type] || COMPONENT_TEMPLATES['card-container'];
             const ow = typeof other.width === 'number' ? other.width : otherTpl.defaultWidth;
             const otherEl = workspaceBoard.querySelector(`.modal-draggable[data-layer-id="${other.id}"]`);
+            const otherTopBarEl = otherEl ? otherEl.querySelector('.modal-top-bar') : null;
             const otherBodyEl = otherEl ? otherEl.querySelector('.modal-body-box') : null;
-            const otherTopOffset = otherBodyEl ? otherBodyEl.offsetTop : 26;
+            const otherTopOffset = otherBodyEl && otherTopBarEl
+              ? (otherTopBarEl.classList.contains('order-2') ? 0 : otherBodyEl.offsetTop)
+              : 26;
             const obodyH = otherBodyEl && otherBodyEl.offsetHeight
               ? otherBodyEl.offsetHeight
               : (typeof other.height === 'number' ? other.height : otherTpl.defaultHeight);
@@ -2097,7 +2102,8 @@
       if (guideX !== null) guides.push({ axis: 'x', pos: guideX });
       if (guideY !== null) guides.push({ axis: 'y', pos: guideY });
 
-      return { x: snappedX, y: Math.max(-topOffset, snappedY), guides };
+      const minAllowedY = guideY !== null ? Math.min(-topOffset, snappedY) : -topOffset;
+      return { x: snappedX, y: Math.max(minAllowedY, snappedY), guides };
     }
 
     /**
