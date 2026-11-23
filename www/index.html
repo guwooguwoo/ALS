@@ -1293,8 +1293,15 @@
         if (parentEl && parentEl.classList.contains('m3-check') && parentEl.classList.contains('hidden')) continue;
 
         if (iconRegex.test(trimmed) && trimmed.length <= 4) {
-          if (typeof customIcons[iconIdx] === 'string' && customIcons[iconIdx] !== '') {
-            node.nodeValue = node.nodeValue.replace(trimmed, customIcons[iconIdx]);
+          if (typeof customIcons[iconIdx] === 'string') {
+            if (customIcons[iconIdx] === '') {
+              node.nodeValue = '';
+              if (parentEl && parentEl.childNodes.length === 1 && parentEl.tagName === 'SPAN') {
+                parentEl.classList.add('hidden');
+              }
+            } else {
+              node.nodeValue = node.nodeValue.replace(trimmed, customIcons[iconIdx]);
+            }
           }
           iconIdx++;
         } else {
@@ -1379,29 +1386,42 @@
       if (iconSlots.length > 0) {
         const iconHeader = document.createElement('p');
         iconHeader.className = 'text-[11px] font-bold text-slate-700 dark:text-slate-300 pt-1';
-        iconHeader.textContent = '아이콘 편집';
+        iconHeader.textContent = '아이콘 편집 (비워두면 빈 공간)';
         modalDynamicIconsContainer.appendChild(iconHeader);
 
         iconSlots.forEach((slot, idx) => {
-          const currentIcon = typeof savedIcons[idx] === 'string' && savedIcons[idx] !== '' ? savedIcons[idx] : slot.defaultVal;
+          const currentIcon = typeof savedIcons[idx] === 'string' ? savedIcons[idx] : slot.defaultVal;
           const wrap = document.createElement('div');
           wrap.className = 'p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/80 space-y-1.5';
           wrap.innerHTML = `
             <div class="flex items-center justify-between gap-2">
               <label class="text-[10px] font-medium text-slate-500 dark:text-slate-400">아이콘 ${idx + 1}</label>
-              <input
-                type="text"
-                data-edit-icon-idx="${idx}"
-                value="${escapeHTML(currentIcon)}"
-                maxlength="4"
-                class="modal-part-icon-input w-16 px-2 py-1 text-center text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400"
-              />
+              <div class="flex items-center gap-1.5">
+                <button type="button" data-clear-icon-idx="${idx}" class="icon-clear-btn px-2 py-1 text-[10px] font-semibold text-slate-500 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-500 border border-slate-200/80 dark:border-slate-700 rounded-lg transition cursor-pointer">비움</button>
+                <input
+                  type="text"
+                  data-edit-icon-idx="${idx}"
+                  value="${escapeHTML(currentIcon)}"
+                  placeholder="없음"
+                  maxlength="4"
+                  class="modal-part-icon-input w-16 px-2 py-1 text-center text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 placeholder:text-[10px] placeholder:text-slate-400 focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400"
+                />
+              </div>
             </div>
             <div class="flex flex-wrap gap-1">
               ${ICON_PRESET_CHOICES.map((ic) => `<button type="button" data-pick-icon-idx="${idx}" data-icon-val="${escapeHTML(ic)}" class="icon-preset-pick-btn w-6 h-6 rounded-md bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 text-xs flex items-center justify-center cursor-pointer">${escapeHTML(ic)}</button>`).join('')}
             </div>
           `;
           modalDynamicIconsContainer.appendChild(wrap);
+        });
+
+        modalDynamicIconsContainer.querySelectorAll('.icon-clear-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const targetIdx = btn.dataset.clearIconIdx;
+            const targetInput = modalDynamicIconsContainer.querySelector(`.modal-part-icon-input[data-edit-icon-idx="${targetIdx}"]`);
+            if (targetInput) targetInput.value = '';
+          });
         });
 
         modalDynamicIconsContainer.querySelectorAll('.icon-preset-pick-btn').forEach((btn) => {
@@ -1498,17 +1518,17 @@
         const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
         const filename = `android-layout-studio-backup-${dateStamp}.zip`;
 
-        // 1) 모바일 환경에서 Web Share API 파일 공유 우선 시도
-        const isMobileUa = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-        if (isMobileUa && navigator.canShare && navigator.share) {
+        // 1) Web Share API 파일 공유 우선 시도 (모바일 · 데스크톱 지원 브라우저 공통)
+        const shareFile = new File([zipBlob], filename, { type: 'application/zip' });
+        if (navigator.share) {
           try {
-            const file = new File([zipBlob], filename, { type: 'application/zip' });
-            if (navigator.canShare({ files: [file] })) {
+            if (!navigator.canShare || navigator.canShare({ files: [shareFile] })) {
               await navigator.share({
-                files: [file],
-                title: 'Android Layout & Modal Studio ZIP 백업'
+                files: [shareFile],
+                title: 'Android Layout & Modal Studio ZIP 백업',
+                text: `총 ${projects.length}개 프로젝트 백업 ZIP 파일입니다.`
               });
-              showBackupMessage(`총 ${projects.length}개 프로젝트 ZIP 백업 파일이 공유/저장되었습니다.`);
+              showBackupMessage(`총 ${projects.length}개 프로젝트 ZIP 백업 파일이 공유되었습니다.`);
               return;
             }
           } catch (shareErr) {
@@ -1516,7 +1536,7 @@
           }
         }
 
-        // 2) Blob URL 기반 표준 ZIP 파일 다운로드
+        // 2) 공유 시트를 지원하지 않는 환경에서는 표준 ZIP 파일 다운로드로 폴백
         const blobUrl = URL.createObjectURL(zipBlob);
         const a = document.createElement('a');
         a.href = blobUrl;
@@ -1530,11 +1550,11 @@
           URL.revokeObjectURL(blobUrl);
         }, 5000);
 
-        showBackupMessage(`총 ${projects.length}개 프로젝트가 ZIP 파일(${filename})로 저장되었습니다.`);
+        showBackupMessage(`공유 기능을 지원하지 않는 환경이어서 ZIP 파일(${filename})로 직접 저장했습니다.`);
       } catch (err) {
         textBackupBox.classList.remove('hidden');
         backupJsonTextarea.value = buildBackupJsonString();
-        showBackupMessage('ZIP 파일 다운로드가 제한된 환경입니다. 아래 JSON 텍스트를 복사해 백업해 주세요.', true);
+        showBackupMessage('ZIP 파일 공유/저장이 제한된 환경입니다. 아래 JSON 텍스트를 복사해 백업해 주세요.', true);
       }
     });
 
