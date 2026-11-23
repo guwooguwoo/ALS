@@ -104,7 +104,7 @@
       id="workspaceUiToggleBtn"
       aria-label="UI 숨김 토글"
       title="UI 숨김 / 모달 작동 테스트"
-      class="fixed top-5 left-5 sm:top-7 sm:left-7 z-50 w-9 h-9 rounded-full bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/5 dark:shadow-black/30 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
+      class="fixed top-5 left-5 sm:top-7 sm:left-7 z-50 w-9 h-9 rounded-full opacity-70 hover:opacity-100 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/5 dark:shadow-black/30 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
     >
       <svg id="workspaceUiEyeIcon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -123,7 +123,7 @@
       id="workspacePrevCanvasBtn"
       aria-label="이전 캔버스"
       title="이전 캔버스로 이동"
-      class="hidden fixed top-16 left-5 sm:top-[4.5rem] sm:left-7 z-40 w-9 h-9 rounded-full bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/5 dark:shadow-black/30 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
+      class="hidden fixed top-16 left-5 sm:top-[4.5rem] sm:left-7 z-40 w-9 h-9 rounded-full opacity-70 hover:opacity-100 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/5 dark:shadow-black/30 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
     >
       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="15 18 9 12 15 6"></polyline>
@@ -261,7 +261,7 @@
       </div>
     </div>
 
-    <!-- 작업 캔버스 1차 선택 메뉴 (우측 하단 + 버튼 위쪽: 상단 이미지 저장 / 중단 레이어 / 하단 모달 추가) -->
+    <!-- 작업 캔버스 1차 선택 메뉴 (우측 하단 + 버튼 위쪽: 이미지 저장 / 레이어 / 제스처 표시 / 모달 추가) -->
     <div
       id="workspaceActionMenu"
       class="fixed bottom-32 right-6 sm:bottom-36 sm:right-8 z-50 hidden flex flex-col gap-2 w-48 card-animate"
@@ -304,6 +304,25 @@
 
       <button
         type="button"
+        id="openGesturePopupBtn"
+        class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200/90 dark:border-slate-700 shadow-lg text-left transition cursor-pointer"
+      >
+        <span class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path>
+            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path>
+            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path>
+            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path>
+          </svg>
+        </span>
+        <div>
+          <p class="text-xs font-bold">제스처 표시</p>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400">슬라이드 화살표 · 탭 손가락</p>
+        </div>
+      </button>
+
+      <button
+        type="button"
         id="openModalListPopupBtn"
         class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200/90 dark:border-slate-700 shadow-lg text-left transition cursor-pointer"
       >
@@ -319,6 +338,85 @@
           <p class="text-[10px] text-slate-500 dark:text-slate-400">모달 · UI 리스트</p>
         </div>
       </button>
+    </div>
+
+    <!-- 제스처 · 인터랙션 표시 선택 팝업 모달 (모달과 별개) -->
+    <div id="gesturePopupOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-[2px] p-4">
+      <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-5 select-auto card-animate">
+        <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">제스처 · 인터랙션 표시</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">반투명 넓은 슬라이드 화살표와 탭 손가락을 배치합니다.</p>
+          </div>
+          <button
+            type="button"
+            id="closeGesturePopupBtn"
+            aria-label="제스처 팝업 닫기"
+            class="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">슬라이드 방향 화살표 (상 · 하 · 좌 · 우)</p>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" data-gesture-type="gesture-slide-up" class="gesture-pick-btn flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700/80 text-left transition cursor-pointer">
+                <span class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base shrink-0">↑</span>
+                <div>
+                  <p class="text-xs font-bold text-slate-800 dark:text-slate-100">위로 슬라이드</p>
+                  <p class="text-[10px] text-slate-500 dark:text-slate-400">반투명 넓은 화살표</p>
+                </div>
+              </button>
+              <button type="button" data-gesture-type="gesture-slide-down" class="gesture-pick-btn flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700/80 text-left transition cursor-pointer">
+                <span class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base shrink-0">↓</span>
+                <div>
+                  <p class="text-xs font-bold text-slate-800 dark:text-slate-100">아래로 슬라이드</p>
+                  <p class="text-[10px] text-slate-500 dark:text-slate-400">반투명 넓은 화살표</p>
+                </div>
+              </button>
+              <button type="button" data-gesture-type="gesture-slide-left" class="gesture-pick-btn flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700/80 text-left transition cursor-pointer">
+                <span class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base shrink-0">←</span>
+                <div>
+                  <p class="text-xs font-bold text-slate-800 dark:text-slate-100">왼쪽 슬라이드</p>
+                  <p class="text-[10px] text-slate-500 dark:text-slate-400">반투명 넓은 화살표</p>
+                </div>
+              </button>
+              <button type="button" data-gesture-type="gesture-slide-right" class="gesture-pick-btn flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700/80 text-left transition cursor-pointer">
+                <span class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base shrink-0">→</span>
+                <div>
+                  <p class="text-xs font-bold text-slate-800 dark:text-slate-100">오른쪽 슬라이드</p>
+                  <p class="text-[10px] text-slate-500 dark:text-slate-400">반투명 넓은 화살표</p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">터치 · 탭 손가락 제스처</p>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" data-gesture-type="gesture-tap-finger" class="gesture-pick-btn flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700/80 text-left transition cursor-pointer">
+                <span class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-base shrink-0">👆</span>
+                <div>
+                  <p class="text-xs font-bold text-slate-800 dark:text-slate-100">단일 탭 (Tap)</p>
+                  <p class="text-[10px] text-slate-500 dark:text-slate-400">터치 링 + 손가락</p>
+                </div>
+              </button>
+              <button type="button" data-gesture-type="gesture-double-tap-finger" class="gesture-pick-btn flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700/80 text-left transition cursor-pointer">
+                <span class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-extrabold shrink-0">×2👆</span>
+                <div>
+                  <p class="text-xs font-bold text-slate-800 dark:text-slate-100">더블 탭 (Double)</p>
+                  <p class="text-[10px] text-slate-500 dark:text-slate-400">이중 터치 링 + 손가락</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 이미지 저장 방식 선택 팝업 모달 -->
@@ -437,10 +535,37 @@
     <!-- 모달 중앙 텍스트 편집 팝업 -->
     <div id="editModalTextOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-[2px] p-4">
       <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-5 select-auto card-animate">
-        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-1">모달 텍스트 · 아이콘 편집</h3>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3">모달 이름, 내부 구성 텍스트와 아이콘을 자유롭게 변경하세요.</p>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-1">모달 텍스트 · 아이콘 · 방향 편집</h3>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3">모달 이름, 내부 구성 텍스트와 아이콘, 가로/세로 방향을 설정하세요.</p>
 
         <div class="space-y-3 max-h-[58vh] overflow-y-auto pr-0.5 mb-4">
+          <div id="modalOrientationSection" class="hidden p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/80">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <p class="text-[11px] font-bold text-slate-700 dark:text-slate-300">배치 방향 (가로 / 세로)</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400">레이아웃 축과 가로·세로 비율을 전환합니다.</p>
+              </div>
+              <div class="inline-flex rounded-lg bg-slate-200/80 dark:bg-slate-950 p-1 shrink-0">
+                <button
+                  type="button"
+                  id="orientHorizontalBtn"
+                  data-orient-val="horizontal"
+                  class="modal-orient-btn px-2.5 py-1 text-[11px] font-bold rounded-md transition cursor-pointer"
+                >
+                  가로
+                </button>
+                <button
+                  type="button"
+                  id="orientVerticalBtn"
+                  data-orient-val="vertical"
+                  class="modal-orient-btn px-2.5 py-1 text-[11px] font-bold rounded-md transition cursor-pointer"
+                >
+                  세로
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label for="modalLabelInput" class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">모달 / 레이어 이름</label>
             <input
@@ -483,7 +608,7 @@
       aria-label="실행 취소"
       title="실행 취소 (Undo)"
       disabled
-      class="fixed bottom-[4.5rem] left-6 sm:bottom-20 sm:left-8 z-40 w-9 h-9 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/10 dark:shadow-black/40 flex items-center justify-center transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
+      class="fixed bottom-[4.5rem] left-6 sm:bottom-20 sm:left-8 z-40 w-9 h-9 rounded-full opacity-70 hover:opacity-100 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/10 dark:shadow-black/40 flex items-center justify-center transition-all duration-200 active:scale-95 disabled:opacity-30 disabled:pointer-events-none cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
     >
       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 14L4 9l5-5"></path>
@@ -497,7 +622,7 @@
       id="workspaceBackBtn"
       aria-label="프로젝트 목록으로 돌아가기"
       title="프로젝트 목록으로 돌아가기"
-      class="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 z-40 w-9 h-9 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/10 dark:shadow-black/40 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
+      class="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 z-40 w-9 h-9 rounded-full opacity-70 hover:opacity-100 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/10 dark:shadow-black/40 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
     >
       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
         <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -512,7 +637,7 @@
       aria-label="다시 실행"
       title="다시 실행 (Redo)"
       disabled
-      class="fixed bottom-[4.5rem] right-6 sm:bottom-20 sm:right-8 z-40 w-9 h-9 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/10 dark:shadow-black/40 flex items-center justify-center transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
+      class="fixed bottom-[4.5rem] right-6 sm:bottom-20 sm:right-8 z-40 w-9 h-9 rounded-full opacity-70 hover:opacity-100 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/10 dark:shadow-black/40 flex items-center justify-center transition-all duration-200 active:scale-95 disabled:opacity-30 disabled:pointer-events-none cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
     >
       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M15 14l5-5-5-5"></path>
@@ -526,11 +651,11 @@
       id="workspaceSettingsBtn"
       aria-label="작업 캔버스 스냅 설정"
       title="스냅(자석) 설정"
-      class="fixed top-5 right-5 sm:top-7 sm:right-7 z-40 w-9 h-9 rounded-full bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/5 dark:shadow-black/30 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
+      class="fixed top-5 right-5 sm:top-7 sm:right-7 z-40 w-9 h-9 rounded-full opacity-70 hover:opacity-100 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/5 dark:shadow-black/30 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
     >
-      <svg id="workspaceSettingsIcon" class="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg id="workspaceSettingsIcon" class="w-4 h-4 shrink-0 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
         <circle cx="12" cy="12" r="3"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
       </svg>
     </button>
 
@@ -540,7 +665,7 @@
       id="workspaceNewCanvasBtn"
       aria-label="새 캔버스 추가"
       title="새 캔버스 추가"
-      class="fixed top-16 right-5 sm:top-[4.5rem] sm:right-7 z-40 w-9 h-9 rounded-full bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/5 dark:shadow-black/30 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
+      class="fixed top-16 right-5 sm:top-[4.5rem] sm:right-7 z-40 w-9 h-9 rounded-full opacity-70 hover:opacity-100 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/5 dark:shadow-black/30 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
     >
       <svg id="workspaceNewCanvasPlusIcon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -557,7 +682,7 @@
       id="workspaceAddBtn"
       aria-label="요소 추가"
       title="요소 추가"
-      class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 w-9 h-9 rounded-full bg-slate-900 dark:bg-emerald-400 hover:bg-slate-800 dark:hover:bg-emerald-300 text-white dark:text-slate-950 shadow-md shadow-slate-900/25 dark:shadow-black/40 flex items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/20 dark:focus:ring-emerald-400/30"
+      class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 w-9 h-9 rounded-full opacity-70 hover:opacity-100 bg-slate-900 dark:bg-emerald-400 hover:bg-slate-800 dark:hover:bg-emerald-300 text-white dark:text-slate-950 shadow-md shadow-slate-900/25 dark:shadow-black/40 flex items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/20 dark:focus:ring-emerald-400/30"
     >
       <svg id="workspaceAddIcon" class="w-4 h-4 transition-transform duration-300 ease-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -572,7 +697,7 @@
     id="fabSettingsBtn"
     aria-label="설정"
     title="설정"
-    class="fixed top-5 right-5 sm:top-7 sm:right-7 z-40 w-9 h-9 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/5 dark:shadow-black/30 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
+    class="fixed top-5 right-5 sm:top-7 sm:right-7 z-40 w-9 h-9 rounded-full opacity-70 hover:opacity-100 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700 shadow-md shadow-slate-900/5 dark:shadow-black/30 flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/10 dark:focus:ring-white/10"
   >
     <svg id="fabSettingsIcon" class="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="3"></circle>
@@ -655,9 +780,18 @@
 
         <!-- 프로젝트 백업 및 불러오기 -->
         <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/80 space-y-2.5">
-          <div>
-            <p class="text-xs font-semibold text-slate-800 dark:text-slate-100">프로젝트 데이터 백업</p>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400">JSON 파일로 내보내거나 백업 파일을 불러옵니다.</p>
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <p class="text-xs font-semibold text-slate-800 dark:text-slate-100">프로젝트 데이터 백업</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">JSON 파일 또는 텍스트로 백업·복원합니다.</p>
+            </div>
+            <button
+              type="button"
+              id="toggleTextBackupBtn"
+              class="px-2 py-1 text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-200/70 dark:bg-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition cursor-pointer shrink-0"
+            >
+              텍스트 백업
+            </button>
           </div>
           <div class="grid grid-cols-2 gap-2">
             <button
@@ -685,7 +819,31 @@
               불러오기
             </button>
           </div>
-          <input type="file" id="restoreFileInput" accept=".json,application/json" class="hidden" />
+          <div id="textBackupBox" class="hidden space-y-2 pt-1">
+            <textarea
+              id="backupJsonTextarea"
+              rows="3"
+              placeholder="백업 JSON 데이터를 복사하거나 붙여넣은 뒤 [텍스트 복원]을 누르세요."
+              class="w-full px-2.5 py-2 text-[11px] font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 resize-none focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400"
+            ></textarea>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                id="copyBackupTextBtn"
+                class="px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                JSON 복사
+              </button>
+              <button
+                type="button"
+                id="applyBackupTextBtn"
+                class="px-2.5 py-1.5 text-[11px] font-semibold text-white dark:text-slate-950 bg-slate-900 dark:bg-emerald-400 rounded-lg hover:bg-slate-800 dark:hover:bg-emerald-300 transition cursor-pointer"
+              >
+                텍스트 복원
+              </button>
+            </div>
+          </div>
+          <input type="file" id="restoreFileInput" accept=".json,application/json,text/plain,*/*" class="hidden" />
           <p id="backupStatusMsg" class="hidden text-[11px] font-medium pt-0.5"></p>
         </div>
       </div>
@@ -775,7 +933,7 @@
     type="button"
     id="fabAddProjectBtn"
     aria-label="프로젝트 추가"
-    class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 w-9 h-9 rounded-full bg-slate-900 dark:bg-emerald-400 hover:bg-slate-800 dark:hover:bg-emerald-300 text-white dark:text-slate-950 shadow-md shadow-slate-900/25 dark:shadow-black/40 flex items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/20 dark:focus:ring-emerald-400/30"
+    class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 w-9 h-9 rounded-full opacity-70 hover:opacity-100 bg-slate-900 dark:bg-emerald-400 hover:bg-slate-800 dark:hover:bg-emerald-300 text-white dark:text-slate-950 shadow-md shadow-slate-900/25 dark:shadow-black/40 flex items-center justify-center transition-all duration-300 active:scale-95 cursor-pointer focus:outline-none focus:ring-4 focus:ring-slate-900/20 dark:focus:ring-emerald-400/30"
   >
     <!-- 가운데 + 아이콘 (팝업이 열리면 45도 회전하여 × 형태로 표시) -->
     <svg id="fabPlusIcon" class="w-4 h-4 transition-transform duration-300 ease-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -798,9 +956,11 @@
     let isWorkspaceMenuOpen = false;
     let isLayerPopupOpen = false;
     let isModalListPopupOpen = false;
+    let isGesturePopupOpen = false;
     let isCanvasListPopupOpen = false;
     let isExportImagePopupOpen = false;
     let editingModalItemId = null;
+    let editingModalOrientation = 'horizontal';
     let selectedModalId = null;
     let undoStack = [];
     let redoStack = [];
@@ -910,7 +1070,10 @@
     const workspaceAddIcon = document.getElementById('workspaceAddIcon');
     const workspaceActionMenu = document.getElementById('workspaceActionMenu');
     const openLayerPopupBtn = document.getElementById('openLayerPopupBtn');
+    const openGesturePopupBtn = document.getElementById('openGesturePopupBtn');
     const openModalListPopupBtn = document.getElementById('openModalListPopupBtn');
+    const gesturePopupOverlay = document.getElementById('gesturePopupOverlay');
+    const closeGesturePopupBtn = document.getElementById('closeGesturePopupBtn');
     const openExportImagePopupBtn = document.getElementById('openExportImagePopupBtn');
     const exportImagePopupOverlay = document.getElementById('exportImagePopupOverlay');
     const closeExportImagePopupBtn = document.getElementById('closeExportImagePopupBtn');
@@ -924,6 +1087,9 @@
     const modalListPopupOverlay = document.getElementById('modalListPopupOverlay');
     const closeModalListPopupBtn = document.getElementById('closeModalListPopupBtn');
     const editModalTextOverlay = document.getElementById('editModalTextOverlay');
+    const modalOrientationSection = document.getElementById('modalOrientationSection');
+    const orientHorizontalBtn = document.getElementById('orientHorizontalBtn');
+    const orientVerticalBtn = document.getElementById('orientVerticalBtn');
     const modalLabelInput = document.getElementById('modalLabelInput');
     const modalDynamicTextsContainer = document.getElementById('modalDynamicTextsContainer');
     const modalDynamicIconsContainer = document.getElementById('modalDynamicIconsContainer');
@@ -940,6 +1106,11 @@
     const backupProjectsBtn = document.getElementById('backupProjectsBtn');
     const restoreProjectsBtn = document.getElementById('restoreProjectsBtn');
     const restoreFileInput = document.getElementById('restoreFileInput');
+    const toggleTextBackupBtn = document.getElementById('toggleTextBackupBtn');
+    const textBackupBox = document.getElementById('textBackupBox');
+    const backupJsonTextarea = document.getElementById('backupJsonTextarea');
+    const copyBackupTextBtn = document.getElementById('copyBackupTextBtn');
+    const applyBackupTextBtn = document.getElementById('applyBackupTextBtn');
     const backupStatusMsg = document.getElementById('backupStatusMsg');
     const fabAddProjectBtn = document.getElementById('fabAddProjectBtn');
     const fabPlusIcon = document.getElementById('fabPlusIcon');
@@ -952,6 +1123,111 @@
     const exitConfirmOverlay = document.getElementById('exitConfirmOverlay');
     const cancelExitBtn = document.getElementById('cancelExitBtn');
     const confirmExitBtn = document.getElementById('confirmExitBtn');
+
+    /**
+     * 가로 / 세로 방향 전환이 가능한 컴포넌트 목록 및 전환 렌더링 헬퍼
+     */
+    const ORIENTABLE_TYPES = new Set([
+      'segmented-tabs',
+      'button-group',
+      'filter-chip-group',
+      'bottom-nav-bar',
+      'navigation-rail',
+      'step-indicator',
+      'split-view',
+      'device-frame',
+      'floating-toolbar',
+      'divider-line',
+      'carousel-slider',
+      'charts-graphs',
+      'empty-box',
+      'empty-solid-rect',
+      'card-container',
+      'canvas-area',
+      'grid-layout'
+    ]);
+
+    function getDefaultOrientation(type) {
+      if (type === 'navigation-rail' || type === 'device-frame') return 'vertical';
+      return 'horizontal';
+    }
+
+    function applyOrientationToElement(containerEl, item) {
+      if (!containerEl || !item || !ORIENTABLE_TYPES.has(item.type)) return;
+      const defaultOrient = getDefaultOrientation(item.type);
+      const orient = item.orientation || defaultOrient;
+      if (orient === defaultOrient) return;
+
+      const rootEl = containerEl.firstElementChild;
+      if (!rootEl) return;
+
+      if (item.type === 'segmented-tabs' || item.type === 'button-group') {
+        rootEl.classList.remove('grid-cols-3', 'rounded-full');
+        rootEl.classList.add('grid-rows-3', 'rounded-2xl');
+        rootEl.querySelectorAll('button').forEach((btn, idx) => {
+          btn.classList.remove('border-l');
+          if (idx > 0) btn.classList.add('border-t', 'border-[#79747E]', 'dark:border-[#938F99]');
+        });
+      } else if (item.type === 'filter-chip-group') {
+        rootEl.classList.add('flex-col', 'items-stretch', 'justify-center');
+      } else if (item.type === 'bottom-nav-bar') {
+        rootEl.classList.remove('grid-cols-4');
+        rootEl.classList.add('grid-rows-4', 'py-2');
+      } else if (item.type === 'navigation-rail') {
+        rootEl.classList.remove('flex-col', 'py-3', 'px-1.5');
+        rootEl.classList.add('flex-row', 'px-3', 'py-1.5');
+        const listWrap = rootEl.querySelector('div');
+        if (listWrap) {
+          listWrap.classList.remove('flex-col', 'w-full');
+          listWrap.classList.add('flex-row', 'items-center', 'justify-around', 'flex-1', 'ml-2');
+        }
+      } else if (item.type === 'step-indicator') {
+        rootEl.classList.add('flex-col', 'items-start', 'justify-between', 'py-3');
+        rootEl.querySelectorAll('span.flex-1').forEach((line) => {
+          line.classList.remove('flex-1', 'h-0.5', 'mx-2', 'w-full');
+          line.classList.add('w-0.5', 'h-3', 'ml-2.5', 'my-0.5');
+        });
+      } else if (item.type === 'split-view') {
+        rootEl.classList.remove('grid-cols-5');
+        rootEl.classList.add('grid-rows-5');
+        const panels = rootEl.children;
+        if (panels[0]) {
+          panels[0].classList.remove('col-span-2', 'border-r');
+          panels[0].classList.add('row-span-2', 'border-b');
+        }
+        if (panels[1]) {
+          panels[1].classList.remove('col-span-3');
+          panels[1].classList.add('row-span-3');
+        }
+      } else if (item.type === 'floating-toolbar') {
+        rootEl.classList.add('flex-col', 'py-3.5', 'px-0');
+      } else if (item.type === 'divider-line') {
+        rootEl.classList.remove('px-2');
+        rootEl.classList.add('py-2', 'justify-center');
+        const line = rootEl.firstElementChild;
+        if (line) {
+          line.classList.remove('w-full', 'h-px');
+          line.classList.add('h-full', 'w-px');
+        }
+      }
+    }
+
+    function updateOrientationButtonsUI(orient) {
+      editingModalOrientation = orient;
+      [orientHorizontalBtn, orientVerticalBtn].forEach((btn) => {
+        const active = btn.dataset.orientVal === orient;
+        btn.classList.toggle('bg-white', active);
+        btn.classList.toggle('dark:bg-slate-800', active);
+        btn.classList.toggle('text-slate-900', active);
+        btn.classList.toggle('dark:text-emerald-400', active);
+        btn.classList.toggle('shadow-sm', active);
+        btn.classList.toggle('text-slate-500', !active);
+        btn.classList.toggle('dark:text-slate-400', !active);
+      });
+    }
+
+    orientHorizontalBtn.addEventListener('click', () => updateOrientationButtonsUI('horizontal'));
+    orientVerticalBtn.addEventListener('click', () => updateOrientationButtonsUI('vertical'));
 
     /**
      * 모달 내 모든 구성 텍스트와 아이콘 커스텀 오버라이드 적용 헬퍼
@@ -1062,6 +1338,13 @@
       const template = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['center-text-modal'];
       editingModalItemId = itemId;
 
+      if (ORIENTABLE_TYPES.has(item.type)) {
+        modalOrientationSection.classList.remove('hidden');
+        updateOrientationButtonsUI(item.orientation || getDefaultOrientation(item.type));
+      } else {
+        modalOrientationSection.classList.add('hidden');
+      }
+
       modalLabelInput.value = item.label || template.label;
       modalDynamicTextsContainer.innerHTML = '';
       modalDynamicIconsContainer.innerHTML = '';
@@ -1160,6 +1443,18 @@
           const beforeSnapshot = JSON.stringify(currentProject.modals || []);
           const newLabel = modalLabelInput.value.trim();
           if (newLabel) item.label = newLabel;
+
+          if (ORIENTABLE_TYPES.has(item.type)) {
+            const prevOrient = item.orientation || getDefaultOrientation(item.type);
+            if (prevOrient !== editingModalOrientation) {
+              const tpl = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
+              const curW = typeof item.width === 'number' ? item.width : tpl.defaultWidth;
+              const curH = typeof item.height === 'number' ? item.height : tpl.defaultHeight;
+              item.width = curH;
+              item.height = curW;
+            }
+            item.orientation = editingModalOrientation;
+          }
 
           const newTexts = [];
           modalDynamicTextsContainer.querySelectorAll('.modal-part-text-input').forEach((inp) => {
@@ -1456,10 +1751,12 @@
         const itemWidth = typeof item.width === 'number' ? item.width : template.defaultWidth;
         const itemHeight = typeof item.height === 'number' ? item.height : template.defaultHeight;
         const isSelected = !isWorkspaceUiHidden && selectedModalId === item.id;
+        const isPinned = Boolean(item.pinned);
+        const isTopClipped = item.y < 28;
 
         const layerEl = document.createElement('div');
         layerEl.dataset.layerId = item.id;
-        layerEl.className = `modal-draggable absolute group ${isWorkspaceUiHidden ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`;
+        layerEl.className = `modal-draggable absolute group ${isWorkspaceUiHidden || isPinned ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`;
         layerEl.style.left = `${item.x}px`;
         layerEl.style.top = `${item.y}px`;
         layerEl.style.width = `${itemWidth}px`;
@@ -1467,10 +1764,16 @@
 
         layerEl.innerHTML = `
           <div class="relative w-full">
-            <div class="modal-top-bar mb-1.5 flex items-center w-full justify-between px-2.5 py-0.5 rounded-full ${isSelected ? 'opacity-95' : 'opacity-0 pointer-events-none'} bg-slate-900/85 dark:bg-slate-700/90 text-white text-[10px] font-medium transition-opacity duration-150 overflow-hidden shadow-sm">
+            <div class="modal-top-bar ${isTopClipped ? 'order-2 mt-1.5' : 'mb-1.5'} flex items-center w-full justify-between px-2.5 py-0.5 rounded-full ${isSelected ? 'opacity-95' : 'opacity-0 pointer-events-none'} bg-slate-900/85 dark:bg-slate-700/90 text-white text-[10px] font-medium transition-opacity duration-150 overflow-hidden shadow-sm">
               <span class="modal-bar-label truncate">${escapeHTML(item.label || template.label)}</span>
               <div class="modal-bar-actions flex items-center gap-1 shrink-0">
                 <span class="size-badge text-[9px] text-slate-300 font-mono mr-0.5">${itemWidth}×${itemHeight}</span>
+                <button type="button" class="pin-layer-btn ${isPinned ? 'text-amber-300 bg-amber-400/20 rounded' : 'text-slate-300 hover:text-amber-200'} px-1 cursor-pointer flex items-center justify-center" title="${isPinned ? '위치 고정 해제' : '위치 고정'}">
+                  <svg class="w-3 h-3" viewBox="0 0 24 24" fill="${isPinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 17v5"></path>
+                    <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path>
+                  </svg>
+                </button>
                 <button type="button" class="edit-text-btn text-emerald-300 hover:text-emerald-200 font-semibold px-1 cursor-pointer" title="중앙 텍스트 수정">T</button>
                 <button type="button" class="remove-layer-btn text-rose-300 hover:text-rose-200 font-bold px-1 cursor-pointer" title="레이어 삭제">×</button>
               </div>
@@ -1479,7 +1782,7 @@
               ${template.renderInner(displayText)}
               <!-- 우측 하단 크기 조절(리사이즈) 핸들 -->
               <div
-                class="resize-handle absolute bottom-1.5 right-1.5 w-5 h-5 rounded-br-2xl rounded-tl-lg ${accent.handle.join(' ')} flex items-center justify-center ${isSelected ? 'opacity-90' : 'opacity-0 pointer-events-none'} transition-opacity cursor-nwse-resize shadow-sm"
+                class="resize-handle absolute bottom-1.5 right-1.5 w-5 h-5 rounded-br-2xl rounded-tl-lg ${accent.handle.join(' ')} flex items-center justify-center ${isSelected && !isPinned ? 'opacity-90' : 'opacity-0 pointer-events-none'} transition-opacity cursor-nwse-resize shadow-sm"
                 title="드래그하여 크기 조절"
               >
                 <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -1491,58 +1794,66 @@
           </div>
         `;
 
-        applyCustomTextsAndIconsToElement(layerEl.querySelector('.modal-body-box'), item);
+        const innerWrapper = layerEl.firstElementChild;
+        if (innerWrapper) {
+          innerWrapper.classList.add('flex', 'flex-col');
+        }
+        const topBarEl = layerEl.querySelector('.modal-top-bar');
+        const bodyBoxElForOrder = layerEl.querySelector('.modal-body-box');
+        if (bodyBoxElForOrder) {
+          bodyBoxElForOrder.classList.add('order-1');
+        }
+        if (topBarEl && !isTopClipped) {
+          topBarEl.classList.add('order-0');
+        }
+
+        const bodyBox = layerEl.querySelector('.modal-body-box');
+        const resizeHandle = layerEl.querySelector('.resize-handle');
+        const sizeBadge = layerEl.querySelector('.size-badge');
+        const pinBtn = layerEl.querySelector('.pin-layer-btn');
+        const editBtn = layerEl.querySelector('.edit-text-btn');
+        const removeBtn = layerEl.querySelector('.remove-layer-btn');
+
+        applyOrientationToElement(bodyBox, item);
+        applyCustomTextsAndIconsToElement(bodyBox, item);
         bindInteractiveModalControls(layerEl);
 
-        const resizeHandle = layerEl.querySelector('.resize-handle');
-        const bodyBox = layerEl.querySelector('.modal-body-box');
-        const sizeBadge = layerEl.querySelector('.size-badge');
-
-        // 우측 하단 크기 조절 핸들 드래그 (스냅 포함, UI 숨김 시 잠금)
-        resizeHandle.addEventListener('pointerdown', (e) => {
-          if (isWorkspaceUiHidden) return;
-          e.stopPropagation();
-          selectedModalId = item.id;
-          const beforeSnapshot = JSON.stringify(currentProject.modals || []);
-          const startX = e.clientX;
-          const startY = e.clientY;
-          const origWidth = typeof item.width === 'number' ? item.width : template.defaultWidth;
-          const origHeight = typeof item.height === 'number' ? item.height : template.defaultHeight;
-          const topOffset = bodyBox ? bodyBox.offsetTop : 26;
-          resizeHandle.setPointerCapture(e.pointerId);
-
-          const onResizeMove = (moveEvent) => {
-            const rawW = Math.max(44, Math.round(origWidth + (moveEvent.clientX - startX)));
-            const rawH = Math.max(40, Math.round(origHeight + (moveEvent.clientY - startY)));
-            const snappedSize = computeSnapSize(item, rawW, rawH, topOffset);
-            item.width = snappedSize.width;
-            item.height = snappedSize.height;
-            layerEl.style.width = `${item.width}px`;
-            bodyBox.style.height = `${item.height}px`;
-            if (sizeBadge) sizeBadge.textContent = `${item.width}×${item.height}`;
-            renderSnapGuides(snappedSize.guides);
-          };
-
-          const onResizeUp = () => {
-            resizeHandle.removeEventListener('pointermove', onResizeMove);
-            resizeHandle.removeEventListener('pointerup', onResizeUp);
-            clearSnapGuides();
+        if (pinBtn) {
+          pinBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+          pinBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const beforeSnapshot = JSON.stringify(currentProject.modals || []);
+            item.pinned = !item.pinned;
             pushUndoSnapshot(beforeSnapshot);
             saveProjects();
-          };
+            renderWorkspaceLayers();
+          });
+        }
 
-          resizeHandle.addEventListener('pointermove', onResizeMove);
-          resizeHandle.addEventListener('pointerup', onResizeUp);
-        });
+        if (editBtn) {
+          editBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+          editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openModalTextEditor(item.id);
+          });
+        }
 
-        // 중앙 텍스트 편집 버튼 및 더블클릭 처리 (UI 숨김 시 잠금)
-        const editTextBtn = layerEl.querySelector('.edit-text-btn');
-        editTextBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
-        editTextBtn.addEventListener('click', (e) => {
-          if (isWorkspaceUiHidden) return;
-          e.stopPropagation();
-          openModalTextEditor(item.id);
-        });
+        if (removeBtn) {
+          removeBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+          removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const beforeSnapshot = JSON.stringify(currentProject.modals || []);
+            currentProject.modals = currentProject.modals.filter((m) => m.id !== item.id);
+            if (Array.isArray(currentProject.canvases) && currentProject.canvases[activeCanvasIndex]) {
+              currentProject.canvases[activeCanvasIndex].modals = currentProject.modals;
+            }
+            if (selectedModalId === item.id) selectedModalId = null;
+            pushUndoSnapshot(beforeSnapshot);
+            saveProjects();
+            renderWorkspaceLayers();
+            renderProjects();
+          });
+        }
 
         layerEl.addEventListener('dblclick', (e) => {
           if (isWorkspaceUiHidden) return;
@@ -1550,24 +1861,42 @@
           openModalTextEditor(item.id);
         });
 
-        // 레이어 삭제 버튼
-        layerEl.querySelector('.remove-layer-btn').addEventListener('pointerdown', (e) => {
-          e.stopPropagation();
-        });
-        layerEl.querySelector('.remove-layer-btn').addEventListener('click', (e) => {
-          if (isWorkspaceUiHidden) return;
-          e.stopPropagation();
-          const beforeSnapshot = JSON.stringify(currentProject.modals || []);
-          if (selectedModalId === item.id) selectedModalId = null;
-          currentProject.modals = currentProject.modals.filter((m) => m.id !== item.id);
-          if (Array.isArray(currentProject.canvases) && currentProject.canvases[activeCanvasIndex]) {
-            currentProject.canvases[activeCanvasIndex].modals = currentProject.modals;
-          }
-          pushUndoSnapshot(beforeSnapshot);
-          saveProjects();
-          renderWorkspaceLayers();
-          renderProjects();
-        });
+        if (resizeHandle) {
+          resizeHandle.addEventListener('pointerdown', (e) => {
+            if (isWorkspaceUiHidden || item.pinned) return;
+            e.stopPropagation();
+            const beforeSnapshot = JSON.stringify(currentProject.modals || []);
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const origW = typeof item.width === 'number' ? item.width : template.defaultWidth;
+            const origH = typeof item.height === 'number' ? item.height : template.defaultHeight;
+            const topOffset = bodyBox ? bodyBox.offsetTop : 26;
+            resizeHandle.setPointerCapture(e.pointerId);
+
+            const onResizeMove = (moveEvent) => {
+              const rawW = Math.max(44, Math.round(origW + (moveEvent.clientX - startX)));
+              const rawH = Math.max(40, Math.round(origH + (moveEvent.clientY - startY)));
+              const snappedSize = computeSnapSize(item, rawW, rawH, topOffset);
+              item.width = snappedSize.width;
+              item.height = snappedSize.height;
+              layerEl.style.width = `${item.width}px`;
+              if (bodyBox) bodyBox.style.height = `${item.height}px`;
+              if (sizeBadge) sizeBadge.textContent = `${item.width}×${item.height}`;
+              renderSnapGuides(snappedSize.guides);
+            };
+
+            const onResizeUp = () => {
+              resizeHandle.removeEventListener('pointermove', onResizeMove);
+              resizeHandle.removeEventListener('pointerup', onResizeUp);
+              clearSnapGuides();
+              pushUndoSnapshot(beforeSnapshot);
+              saveProjects();
+            };
+
+            resizeHandle.addEventListener('pointermove', onResizeMove);
+            resizeHandle.addEventListener('pointerup', onResizeUp);
+          });
+        }
 
         // 포인터 선택 및 드래그 이동 처리 (UI 숨김 시 위치 이동 잠금)
         layerEl.addEventListener('pointerdown', (e) => {
@@ -1599,11 +1928,13 @@
               topBar.classList.add('opacity-95');
             }
             if (bodyBox) bodyBox.classList.add(...accent.ring);
-            if (resizeHandle) {
+            if (resizeHandle && !item.pinned) {
               resizeHandle.classList.remove('opacity-0', 'pointer-events-none');
               resizeHandle.classList.add('opacity-90');
             }
           }
+
+          if (item.pinned) return;
 
           const beforeSnapshot = JSON.stringify(currentProject.modals || []);
           const startX = e.clientX;
@@ -1621,6 +1952,13 @@
             item.y = snapped.y;
             layerEl.style.left = `${item.x}px`;
             layerEl.style.top = `${item.y}px`;
+            if (topBarEl) {
+              const clipped = item.y < 28;
+              topBarEl.classList.toggle('order-2', clipped);
+              topBarEl.classList.toggle('mt-1.5', clipped);
+              topBarEl.classList.toggle('order-0', !clipped);
+              topBarEl.classList.toggle('mb-1.5', !clipped);
+            }
             renderSnapGuides(snapped.guides);
           };
 
@@ -2865,6 +3203,864 @@
             <button type="button" data-interactive="true" data-action="confirm" class="w-full py-2 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">결제 승인</button>
           </div>
         `
+      },
+      'navigation-rail': {
+        label: 'Navigation Rail (내비게이션 레일)',
+        defaultText: '홈',
+        defaultX: 40,
+        defaultY: 56,
+        defaultWidth: 80,
+        defaultHeight: 280,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] py-3 px-1.5 shadow-md flex flex-col items-center justify-between text-[10px]">
+            <button type="button" data-interactive="true" data-action="btn-pulse" class="w-10 h-10 rounded-2xl bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] font-bold flex items-center justify-center">✎</button>
+            <div class="flex flex-col gap-2 w-full">
+              ${[
+                { ic: '🏠', label: text },
+                { ic: '🔍', label: '탐색' },
+                { ic: '🔔', label: '알림' },
+                { ic: '⚙', label: '설정' }
+              ].map((t, idx) => `<button type="button" data-interactive="true" data-nav-tab="${idx}" class="bottom-nav-tab py-1.5 rounded-2xl flex flex-col items-center gap-0.5 ${idx === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458] font-bold' : ''}">
+                <span class="text-sm">${t.ic}</span><span class="truncate max-w-full px-1">${escapeHTML(t.label)}</span>
+              </button>`).join('')}
+            </div>
+          </div>
+        `
+      },
+      'page-indicator-dots': {
+        label: 'Page Indicator / Dots (페이지 인디케이터)',
+        defaultText: '1 / 4 페이지',
+        defaultX: 56,
+        defaultY: 72,
+        defaultWidth: 160,
+        defaultHeight: 36,
+        renderInner: () => `
+          <div class="w-full h-full rounded-full bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] px-4 flex items-center justify-center gap-2 shadow-sm">
+            <span class="w-5 h-2 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF]"></span>
+            <span class="w-2 h-2 rounded-full bg-[#79747E]/40 dark:bg-[#938F99]/40"></span>
+            <span class="w-2 h-2 rounded-full bg-[#79747E]/40 dark:bg-[#938F99]/40"></span>
+            <span class="w-2 h-2 rounded-full bg-[#79747E]/40 dark:bg-[#938F99]/40"></span>
+          </div>
+        `
+      },
+      'anchor-toc-nav': {
+        label: 'Anchor / TOC (앵커 · 목차 내비게이션)',
+        defaultText: '1. 개요 및 소개',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 212,
+        defaultHeight: 144,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3 shadow-sm flex flex-col justify-between text-xs">
+            <p class="text-[10px] font-bold text-[#79747E] dark:text-[#938F99] uppercase tracking-wider">목차 (TOC)</p>
+            <div class="space-y-1 border-l-2 border-[#CAC4D0] dark:border-[#49454F] pl-2.5 my-auto">
+              <div class="font-bold text-[#6750A4] dark:text-[#D0BCFF] truncate">${escapeHTML(text)}</div>
+              <div class="text-[#49454F] dark:text-[#CAC4D0] truncate">2. 주요 기능 상세</div>
+              <div class="text-[#49454F] dark:text-[#CAC4D0] truncate">3. 설정 및 FAQ</div>
+            </div>
+          </div>
+        `
+      },
+      'step-indicator': {
+        label: 'Step Indicator (스텝퍼 인디케이터)',
+        defaultText: '정보입력',
+        defaultX: 44,
+        defaultY: 64,
+        defaultWidth: 296,
+        defaultHeight: 56,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] px-3.5 flex items-center justify-between text-[11px] shadow-sm">
+            <div class="flex items-center gap-1.5 font-bold text-[#6750A4] dark:text-[#D0BCFF]">
+              <span class="w-5 h-5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] flex items-center justify-center text-[10px]">1</span>
+              <span class="truncate">${escapeHTML(text)}</span>
+            </div>
+            <span class="flex-1 h-0.5 mx-2 bg-[#6750A4]/40 dark:bg-[#D0BCFF]/40"></span>
+            <div class="flex items-center gap-1.5 text-[#49454F] dark:text-[#CAC4D0]">
+              <span class="w-5 h-5 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] flex items-center justify-center text-[10px] font-bold">2</span>
+              <span>결제</span>
+            </div>
+            <span class="flex-1 h-0.5 mx-2 bg-[#CAC4D0] dark:bg-[#49454F]"></span>
+            <div class="flex items-center gap-1.5 text-[#49454F] dark:text-[#CAC4D0]">
+              <span class="w-5 h-5 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] flex items-center justify-center text-[10px] font-bold">3</span>
+              <span>완료</span>
+            </div>
+          </div>
+        `
+      },
+      'text-ghost-button': {
+        label: 'Text / Ghost Button (텍스트 · 고스트 버튼)',
+        defaultText: '건너뛰기',
+        defaultX: 60,
+        defaultY: 72,
+        defaultWidth: 140,
+        defaultHeight: 44,
+        renderInner: (text) => `
+          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full rounded-full hover:bg-[#E8DEF8]/50 dark:hover:bg-[#4A4458]/50 text-[#6750A4] dark:text-[#D0BCFF] text-xs font-bold flex items-center justify-center px-3">
+            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
+          </button>
+        `
+      },
+      'fab-button': {
+        label: 'FAB (플로팅 액션 버튼)',
+        defaultText: '+',
+        defaultX: 64,
+        defaultY: 72,
+        defaultWidth: 56,
+        defaultHeight: 56,
+        renderInner: (text) => `
+          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full rounded-2xl bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] text-xl font-bold shadow-lg flex items-center justify-center">
+            <span class="modal-status-text">${escapeHTML(text)}</span>
+          </button>
+        `
+      },
+      'extended-fab': {
+        label: 'Extended FAB (확장형 FAB)',
+        defaultText: '새 글 작성',
+        defaultX: 56,
+        defaultY: 72,
+        defaultWidth: 156,
+        defaultHeight: 52,
+        renderInner: (text) => `
+          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full rounded-2xl bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] text-xs font-bold shadow-lg flex items-center justify-center gap-2 px-4">
+            <span class="text-base">✎</span>
+            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
+          </button>
+        `
+      },
+      'split-button': {
+        label: 'Split Button (스플릿 버튼)',
+        defaultText: '저장하기',
+        defaultX: 56,
+        defaultY: 72,
+        defaultWidth: 180,
+        defaultHeight: 46,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold shadow-md flex items-center overflow-hidden">
+            <button type="button" data-interactive="true" data-action="btn-pulse" class="flex-1 h-full px-3 flex items-center justify-center truncate">
+              <span class="modal-status-text truncate">${escapeHTML(text)}</span>
+            </button>
+            <span class="w-px h-5 bg-white/30 dark:bg-black/20"></span>
+            <button type="button" data-interactive="true" data-action="btn-pulse" class="w-10 h-full flex items-center justify-center text-[10px]">▼</button>
+          </div>
+        `
+      },
+      'button-group': {
+        label: 'Button Group (버튼 그룹)',
+        defaultText: '일간',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 236,
+        defaultHeight: 44,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-full border border-[#79747E] dark:border-[#938F99] bg-[#F3EDF7] dark:bg-[#211F26] grid grid-cols-3 overflow-hidden text-xs font-semibold">
+            ${[text, '주간', '월간'].map((lbl, i) => `<button type="button" data-interactive="true" data-seg-idx="${i}" class="seg-tab-btn flex items-center justify-center ${i > 0 ? 'border-l border-[#79747E] dark:border-[#938F99]' : ''} ${i === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458]' : ''}">${escapeHTML(lbl)}</button>`).join('')}
+          </div>
+        `
+      },
+      'text-link': {
+        label: 'Text Link (텍스트 링크)',
+        defaultText: '이용약관 자세히 보기 →',
+        defaultX: 60,
+        defaultY: 72,
+        defaultWidth: 184,
+        defaultHeight: 36,
+        renderInner: (text) => `
+          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full flex items-center justify-center text-xs font-semibold text-[#6750A4] dark:text-[#D0BCFF] underline underline-offset-4">
+            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
+          </button>
+        `
+      },
+      'password-field': {
+        label: 'Password Field (비밀번호 입력 필드)',
+        defaultText: '비밀번호 입력',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 248,
+        defaultHeight: 52,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E] dark:border-[#938F99] px-3.5 flex items-center justify-between gap-2">
+            <input type="password" data-interactive="true" value="12345678" placeholder="${escapeHTML(text)}" class="w-full bg-transparent text-xs text-[#1D1B20] dark:text-[#E6E0E9] focus:outline-none" />
+            <span class="text-xs text-[#49454F] dark:text-[#CAC4D0]">👁</span>
+          </div>
+        `
+      },
+      'combobox-autocomplete': {
+        label: 'Combobox / Autocomplete (콤보박스 · 자동완성)',
+        defaultText: '서울특별시 강남구',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 256,
+        defaultHeight: 132,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-2.5 shadow-md flex flex-col justify-between text-xs">
+            <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/80 dark:bg-[#141218]/80 border border-[#6750A4] dark:border-[#D0BCFF]">
+              <span>🔍</span>
+              <input type="text" data-interactive="true" value="${escapeHTML(text)}" class="w-full bg-transparent text-xs focus:outline-none" />
+            </div>
+            <div class="space-y-1 text-[11px] pt-1">
+              <div class="px-2.5 py-1 rounded-lg bg-[#E8DEF8] dark:bg-[#4A4458] font-semibold truncate">${escapeHTML(text)}</div>
+              <div class="px-2.5 py-1 rounded-lg text-[#49454F] dark:text-[#CAC4D0] truncate">서울특별시 서초구</div>
+            </div>
+          </div>
+        `
+      },
+      'filter-chip-group': {
+        label: 'Filter Chip (필터 칩 그룹)',
+        defaultText: '전체',
+        defaultX: 48,
+        defaultY: 68,
+        defaultWidth: 276,
+        defaultHeight: 46,
+        renderInner: (text) => `
+          <div class="w-full h-full flex items-center gap-1.5 px-1">
+            ${[text, '최신순', '인기순', '무료'].map((chip, i) => `<button type="button" data-interactive="true" data-filter-chip="${i === 0}" class="filter-chip-btn px-3 py-1.5 rounded-full text-xs whitespace-nowrap ${i === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458] font-bold' : 'bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E]'}">${i === 0 ? '✓ ' : ''}${escapeHTML(chip)}</button>`).join('')}
+          </div>
+        `
+      },
+      'date-picker': {
+        label: 'Date Picker (날짜 선택기)',
+        defaultText: '2026년 11월',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 268,
+        defaultHeight: 196,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-lg flex flex-col justify-between text-xs">
+            <div class="flex items-center justify-between font-bold px-1">
+              <span>‹</span><span>${escapeHTML(text)}</span><span>›</span>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center text-[10px]">
+              ${['일','월','화','수','목','금','토'].map((d) => `<span class="text-[#79747E] font-bold">${d}</span>`).join('')}
+              ${Array.from({ length: 14 }, (_, i) => i + 10).map((day) => `<button type="button" data-interactive="true" data-date-chip="${day}" class="date-chip-btn py-1 rounded-full ${day === 23 ? 'bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] font-bold' : 'bg-[#F3EDF7] dark:bg-[#211F26]'}">${day}</button>`).join('')}
+            </div>
+          </div>
+        `
+      },
+      'time-picker': {
+        label: 'Time Picker (시간 선택기)',
+        defaultText: '오후 02 : 30',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 236,
+        defaultHeight: 120,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-lg flex flex-col justify-between items-center">
+            <span class="text-[10px] font-semibold text-[#49454F] dark:text-[#CAC4D0]">시간 설정</span>
+            <div class="flex items-center gap-2 text-lg font-bold">
+              <span class="px-3 py-1.5 rounded-2xl bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8]">02</span>
+              <span>:</span>
+              <span class="px-3 py-1.5 rounded-2xl bg-white/80 dark:bg-[#141218]/80 border border-[#CAC4D0] dark:border-[#49454F]">30</span>
+              <span class="text-xs px-2 py-1 rounded-xl bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72]">${escapeHTML(text.slice(0, 2) || 'PM')}</span>
+            </div>
+          </div>
+        `
+      },
+      'color-picker': {
+        label: 'Color Picker (컬러 피커)',
+        defaultText: '#6750A4',
+        defaultX: 56,
+        defaultY: 68,
+        defaultWidth: 224,
+        defaultHeight: 112,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-md flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold">
+              <span>테마 컬러 선택</span>
+              <span class="font-mono text-[11px] text-[#6750A4] dark:text-[#D0BCFF]">${escapeHTML(text)}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              ${['#6750A4', '#3DDC84', '#E11D48', '#F59E0B', '#0284C7', '#1E293B'].map((hex, i) => `<button type="button" data-interactive="true" data-action="btn-pulse" class="w-6 h-6 rounded-full ${i === 0 ? 'ring-2 ring-offset-2 ring-[#6750A4] dark:ring-[#D0BCFF]' : ''}" style="background-color:${hex};"></button>`).join('')}
+            </div>
+          </div>
+        `
+      },
+      'file-uploader-dropzone': {
+        label: 'File Uploader / Dropzone (파일 업로더)',
+        defaultText: '파일을 드래그하거나 탭하여 업로드',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 276,
+        defaultHeight: 124,
+        renderInner: (text) => `
+          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full rounded-3xl border-2 border-dashed border-[#6750A4]/60 dark:border-[#D0BCFF]/60 bg-[#F3EDF7]/60 dark:bg-[#211F26]/60 p-4 flex flex-col items-center justify-center gap-1.5 text-center">
+            <span class="text-xl">☁</span>
+            <span class="modal-status-text text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</span>
+            <span class="text-[10px] text-[#49454F] dark:text-[#CAC4D0]">PNG, JPG, PDF (최대 20MB)</span>
+          </button>
+        `
+      },
+      'typography-block': {
+        label: 'Typography (타이포그래피 블록)',
+        defaultText: '헤드라인 타이틀 텍스트',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 268,
+        defaultHeight: 96,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl p-2 flex flex-col justify-center">
+            <span class="text-[10px] font-mono uppercase tracking-wider text-[#6750A4] dark:text-[#D0BCFF]">Display / Title</span>
+            <h3 class="text-lg font-bold text-[#1D1B20] dark:text-[#E6E0E9] leading-tight mt-0.5 truncate">${escapeHTML(text)}</h3>
+            <p class="text-xs text-[#49454F] dark:text-[#CAC4D0] mt-1 truncate">본문 가독성을 위한 서브 설명 문구 영역입니다.</p>
+          </div>
+        `
+      },
+      'list-item-row': {
+        label: 'List Item (리스트 아이템)',
+        defaultText: '알림 및 소리 설정',
+        defaultX: 48,
+        defaultY: 68,
+        defaultWidth: 284,
+        defaultHeight: 64,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] px-3.5 shadow-sm flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-9 h-9 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] flex items-center justify-center text-sm shrink-0">🔔</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</p>
+                <p class="text-[10px] text-[#49454F] dark:text-[#CAC4D0] truncate">진동 · 배너 · 사운드 세부 옵션</p>
+              </div>
+            </div>
+            <span class="text-xs text-[#49454F] dark:text-[#CAC4D0]">›</span>
+          </div>
+        `
+      },
+      'data-table': {
+        label: 'Data Table (데이터 테이블)',
+        defaultText: '항목명',
+        defaultX: 44,
+        defaultY: 64,
+        defaultWidth: 300,
+        defaultHeight: 148,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] overflow-hidden shadow-sm flex flex-col text-[11px]">
+            <div class="grid grid-cols-3 bg-[#E8DEF8] dark:bg-[#4A4458] px-3 py-2 font-bold">
+              <span>${escapeHTML(text)}</span><span>상태</span><span class="text-right">수치</span>
+            </div>
+            <div class="grid grid-cols-3 px-3 py-2 border-b border-[#CAC4D0]/50 dark:border-[#49454F]/50">
+              <span>모듈 A</span><span class="text-emerald-600 dark:text-emerald-400 font-semibold">정상</span><span class="text-right font-mono">98%</span>
+            </div>
+            <div class="grid grid-cols-3 px-3 py-2">
+              <span>모듈 B</span><span class="text-amber-600 dark:text-amber-400 font-semibold">대기</span><span class="text-right font-mono">42%</span>
+            </div>
+          </div>
+        `
+      },
+      'key-value-list': {
+        label: 'Key-Value List (키-값 속성 목록)',
+        defaultText: '버전 정보',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 260,
+        defaultHeight: 116,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-sm flex flex-col justify-between text-xs">
+            <div class="flex justify-between"><span class="text-[#49454F] dark:text-[#CAC4D0]">${escapeHTML(text)}</span><span class="font-bold">v2.4.1</span></div>
+            <div class="flex justify-between"><span class="text-[#49454F] dark:text-[#CAC4D0]">빌드 환경</span><span class="font-bold">Android 15</span></div>
+            <div class="flex justify-between"><span class="text-[#49454F] dark:text-[#CAC4D0]">라이선스</span><span class="font-bold text-[#6750A4] dark:text-[#D0BCFF]">활성화됨</span></div>
+          </div>
+        `
+      },
+      'status-pill-tag': {
+        label: 'Status Pill / Tag (상태 라벨 · 필)',
+        defaultText: '승인 완료',
+        defaultX: 64,
+        defaultY: 72,
+        defaultWidth: 108,
+        defaultHeight: 34,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 px-3">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="truncate">${escapeHTML(text)}</span>
+          </div>
+        `
+      },
+      'avatar-single': {
+        label: 'Avatar (아바타)',
+        defaultText: '👤',
+        defaultX: 64,
+        defaultY: 72,
+        defaultWidth: 56,
+        defaultHeight: 56,
+        renderInner: (text) => `
+          <div class="relative w-full h-full rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] border-2 border-[#6750A4] dark:border-[#D0BCFF] flex items-center justify-center text-xl shadow-sm">
+            <span>${escapeHTML(text)}</span>
+            <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#141218]"></span>
+          </div>
+        `
+      },
+      'avatar-group': {
+        label: 'Avatar Group (아바타 그룹)',
+        defaultText: '+5',
+        defaultX: 56,
+        defaultY: 72,
+        defaultWidth: 148,
+        defaultHeight: 48,
+        renderInner: (text) => `
+          <div class="w-full h-full flex items-center px-2">
+            <div class="flex -space-x-2.5">
+              <span class="w-9 h-9 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] border-2 border-white dark:border-[#141218] flex items-center justify-center text-xs">👤</span>
+              <span class="w-9 h-9 rounded-full bg-sky-200 dark:bg-sky-900 border-2 border-white dark:border-[#141218] flex items-center justify-center text-xs">👤</span>
+              <span class="w-9 h-9 rounded-full bg-amber-200 dark:bg-amber-900 border-2 border-white dark:border-[#141218] flex items-center justify-center text-xs">👤</span>
+              <span class="w-9 h-9 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] border-2 border-white dark:border-[#141218] flex items-center justify-center text-[11px] font-bold">${escapeHTML(text)}</span>
+            </div>
+          </div>
+        `
+      },
+      'image-thumbnail': {
+        label: 'Image / Thumbnail (이미지 · 썸네일)',
+        defaultText: '16:9 썸네일 이미지',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 240,
+        defaultHeight: 144,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-gradient-to-br from-[#E8DEF8] to-[#D0BCFF]/50 dark:from-[#4A4458] dark:to-[#381E72]/60 border border-[#CAC4D0] dark:border-[#49454F] flex flex-col items-center justify-center gap-1.5 text-xs font-semibold text-[#1D192B] dark:text-[#E8DEF8] shadow-sm">
+            <span class="text-2xl">🖼</span>
+            <span class="truncate px-3">${escapeHTML(text)}</span>
+          </div>
+        `
+      },
+      'media-player': {
+        label: 'Media Player (비디오 · 오디오 플레이어)',
+        defaultText: '샘플 오디오 트랙',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 108,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-md flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-bold">
+              <span class="truncate">♪ ${escapeHTML(text)}</span>
+              <span class="text-[10px] font-mono text-[#49454F] dark:text-[#CAC4D0]">01:24 / 03:45</span>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] overflow-hidden">
+              <div class="w-2/5 h-full bg-[#6750A4] dark:bg-[#D0BCFF]"></div>
+            </div>
+            <div class="flex items-center justify-center gap-5 text-xs font-bold">
+              <span>⏮</span>
+              <button type="button" data-interactive="true" data-action="btn-pulse" class="w-7 h-7 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] flex items-center justify-center">▶</button>
+              <span>⏭</span>
+            </div>
+          </div>
+        `
+      },
+      'charts-graphs': {
+        label: 'Charts & Graphs (차트 및 그래프)',
+        defaultText: '주간 활성 지표',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 268,
+        defaultHeight: 156,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-md flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-bold">
+              <span>${escapeHTML(text)}</span>
+              <span class="text-[11px] text-emerald-600 dark:text-emerald-400">+18.4%</span>
+            </div>
+            <div class="flex items-end justify-between gap-2 h-20 pt-2 px-1">
+              ${[45, 70, 55, 90, 65, 100, 80].map((h, i) => `<div class="flex-1 rounded-t-lg ${i === 5 ? 'bg-[#6750A4] dark:bg-[#D0BCFF]' : 'bg-[#E8DEF8] dark:bg-[#4A4458]'}" style="height:${h}%;"></div>`).join('')}
+            </div>
+          </div>
+        `
+      },
+      'timeline-view': {
+        label: 'Timeline (타임라인)',
+        defaultText: '주문 접수 완료',
+        defaultX: 52,
+        defaultY: 64,
+        defaultWidth: 256,
+        defaultHeight: 148,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-sm flex flex-col justify-between text-xs">
+            <div class="flex items-start gap-2.5">
+              <span class="w-2.5 h-2.5 mt-1 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] shrink-0"></span>
+              <div><p class="font-bold">${escapeHTML(text)}</p><p class="text-[10px] text-[#79747E]">10:00 AM</p></div>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <span class="w-2.5 h-2.5 mt-1 rounded-full bg-[#6750A4]/50 dark:bg-[#D0BCFF]/50 shrink-0"></span>
+              <div><p class="font-semibold">상품 준비 및 포장</p><p class="text-[10px] text-[#79747E]">11:20 AM</p></div>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <span class="w-2.5 h-2.5 mt-1 rounded-full border border-[#79747E] shrink-0"></span>
+              <div><p class="text-[#49454F] dark:text-[#CAC4D0]">배송 출발 예정</p><p class="text-[10px] text-[#79747E]">예정</p></div>
+            </div>
+          </div>
+        `
+      },
+      'tree-view': {
+        label: 'Tree View (트리 뷰)',
+        defaultText: '프로젝트 폴더',
+        defaultX: 52,
+        defaultY: 64,
+        defaultWidth: 236,
+        defaultHeight: 148,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3 shadow-sm flex flex-col justify-between text-xs">
+            <div class="font-bold">▼ 📁 ${escapeHTML(text)}</div>
+            <div class="pl-4 space-y-1 text-[#49454F] dark:text-[#CAC4D0]">
+              <div>▼ 📂 components</div>
+              <div class="pl-4 text-[#6750A4] dark:text-[#D0BCFF] font-semibold">• ModalView.kt</div>
+              <div>▶ 📂 assets</div>
+            </div>
+          </div>
+        `
+      },
+      'popover-box': {
+        label: 'Popover (팝오버)',
+        defaultText: '상세 도움말 팝오버',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 236,
+        defaultHeight: 108,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#6750A4]/40 dark:border-[#D0BCFF]/40 p-3.5 shadow-xl flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold">${escapeHTML(text)}</span>
+              <span class="text-xs text-[#79747E]">✕</span>
+            </div>
+            <p class="text-[11px] text-[#49454F] dark:text-[#CAC4D0]">특정 UI 요소 주변에 떠서 부가 설명과 액션을 제공하는 팝오버입니다.</p>
+          </div>
+        `
+      },
+      'code-blockquote': {
+        label: 'Code Block / Blockquote (코드 블록 · 인용구)',
+        defaultText: 'val theme = MaterialTheme.colorScheme',
+        defaultX: 48,
+        defaultY: 68,
+        defaultWidth: 276,
+        defaultHeight: 84,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#1E1E2E] text-emerald-300 border-l-4 border-[#6750A4] dark:border-[#D0BCFF] p-3 font-mono text-[11px] flex flex-col justify-center shadow-sm">
+            <span class="text-[9px] text-slate-400 mb-1">// Kotlin Compose Snippet</span>
+            <code class="truncate">${escapeHTML(text)}</code>
+          </div>
+        `
+      },
+      'inline-banner-callout': {
+        label: 'Inline Banner / Callout (인라인 배너 · 콜아웃)',
+        defaultText: '시스템 점검 안내가 예정되어 있습니다.',
+        defaultX: 48,
+        defaultY: 68,
+        defaultWidth: 288,
+        defaultHeight: 68,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#E8DEF8]/80 dark:bg-[#4A4458]/80 border border-[#6750A4]/30 dark:border-[#D0BCFF]/30 px-3.5 flex items-center gap-2.5 text-xs">
+            <span class="text-base shrink-0">🔔</span>
+            <p class="font-medium text-[#1D192B] dark:text-[#E8DEF8] line-clamp-2">${escapeHTML(text)}</p>
+          </div>
+        `
+      },
+      'skeleton-screen': {
+        label: 'Skeleton Screen (스켈레톤 스크린)',
+        defaultText: '로딩 스켈레톤',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 268,
+        defaultHeight: 116,
+        renderInner: () => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 flex flex-col justify-between animate-pulse">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-full bg-[#CAC4D0]/60 dark:bg-[#49454F]/80"></div>
+              <div class="flex-1 space-y-1.5">
+                <div class="h-2.5 w-2/3 rounded bg-[#CAC4D0]/60 dark:bg-[#49454F]/80"></div>
+                <div class="h-2 w-1/3 rounded bg-[#CAC4D0]/40 dark:bg-[#49454F]/50"></div>
+              </div>
+            </div>
+            <div class="h-8 w-full rounded-xl bg-[#CAC4D0]/50 dark:bg-[#49454F]/60"></div>
+          </div>
+        `
+      },
+      'error-state-card': {
+        label: 'Error State (에러 상태 화면)',
+        defaultText: '네트워크 연결에 실패했습니다',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 276,
+        defaultHeight: 168,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#B3261E]/40 dark:border-[#F2B8B5]/40 p-4 shadow-sm flex flex-col items-center justify-center text-center gap-2">
+            <span class="text-xl text-[#B3261E] dark:text-[#F2B8B5]">⚠</span>
+            <p class="text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</p>
+            <button type="button" data-interactive="true" data-action="btn-pulse" class="px-3.5 py-1 rounded-full bg-[#B3261E] dark:bg-[#F2B8B5] text-white dark:text-[#601410] text-[11px] font-bold">다시 시도</button>
+          </div>
+        `
+      },
+      'validation-message': {
+        label: 'Validation Message (유효성 검사 메시지)',
+        defaultText: '올바른 이메일 형식을 입력해 주세요.',
+        defaultX: 52,
+        defaultY: 72,
+        defaultWidth: 256,
+        defaultHeight: 38,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-xl bg-[#B3261E]/10 dark:bg-[#F2B8B5]/15 px-3 flex items-center gap-1.5 text-[11px] font-semibold text-[#B3261E] dark:text-[#F2B8B5]">
+            <span>⚠</span>
+            <span class="truncate">${escapeHTML(text)}</span>
+          </div>
+        `
+      },
+      'ripple-touch-feedback': {
+        label: 'Ripple / Touch Feedback (리플 · 터치 피드백)',
+        defaultText: '터치 영역 피드백',
+        defaultX: 56,
+        defaultY: 68,
+        defaultWidth: 200,
+        defaultHeight: 84,
+        renderInner: (text) => `
+          <button type="button" data-interactive="true" data-action="btn-pulse" class="relative w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] overflow-hidden flex items-center justify-center text-xs font-semibold">
+            <span class="absolute w-24 h-24 rounded-full bg-[#6750A4]/15 dark:bg-[#D0BCFF]/20"></span>
+            <span class="relative modal-status-text">${escapeHTML(text)}</span>
+          </button>
+        `
+      },
+      'general-modal-dialog': {
+        label: 'Modal / Dialog (일반 정보 모달)',
+        defaultText: '업데이트 안내',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 168,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-5 shadow-2xl flex flex-col justify-between">
+            <div>
+              <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+              <p class="modal-status-text text-xs text-[#49454F] dark:text-[#CAC4D0] mt-1.5">새로운 레이아웃 컴포넌트 기능이 추가되었습니다.</p>
+            </div>
+            <div class="flex justify-end">
+              <button type="button" data-interactive="true" data-action="confirm" class="px-4 py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">확인</button>
+            </div>
+          </div>
+        `
+      },
+      'side-sheet': {
+        label: 'Side Sheet (사이드 시트)',
+        defaultText: '상세 필터 시트',
+        defaultX: 44,
+        defaultY: 56,
+        defaultWidth: 248,
+        defaultHeight: 280,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-l-3xl rounded-r-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between">
+            <div class="flex items-center justify-between pb-2 border-b border-[#CAC4D0]/60 dark:border-[#49454F]/60">
+              <h4 class="text-xs font-bold">${escapeHTML(text)}</h4>
+              <span class="text-xs">✕</span>
+            </div>
+            <p class="text-xs text-[#49454F] dark:text-[#CAC4D0] my-auto">화면 측면에서 슬라이드되어 보조 설정을 표시하는 사이드 시트입니다.</p>
+            <button type="button" data-interactive="true" data-action="confirm" class="w-full py-2 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">적용하기</button>
+          </div>
+        `
+      },
+      'split-view': {
+        label: 'Split View (스플릿 뷰)',
+        defaultText: '목록 패널',
+        defaultX: 44,
+        defaultY: 64,
+        defaultWidth: 312,
+        defaultHeight: 184,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] overflow-hidden shadow-md grid grid-cols-5 text-xs">
+            <div class="col-span-2 bg-[#E8DEF8]/50 dark:bg-[#4A4458]/50 p-3 border-r border-[#CAC4D0] dark:border-[#49454F] font-bold">
+              ${escapeHTML(text)}
+            </div>
+            <div class="col-span-3 p-3 text-[#49454F] dark:text-[#CAC4D0] flex items-center justify-center">
+              상세 콘텐츠 영역
+            </div>
+          </div>
+        `
+      },
+      'grid-layout': {
+        label: 'Grid Layout (그리드 레이아웃)',
+        defaultText: '그리드 셀',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 276,
+        defaultHeight: 168,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7]/60 dark:bg-[#211F26]/60 border border-[#CAC4D0] dark:border-[#49454F] p-3 grid grid-cols-2 gap-2 text-xs font-semibold">
+            <div class="rounded-2xl bg-[#E8DEF8] dark:bg-[#4A4458] flex items-center justify-center">${escapeHTML(text)} 1</div>
+            <div class="rounded-2xl bg-[#E8DEF8] dark:bg-[#4A4458] flex items-center justify-center">${escapeHTML(text)} 2</div>
+            <div class="rounded-2xl bg-[#E8DEF8] dark:bg-[#4A4458] flex items-center justify-center">${escapeHTML(text)} 3</div>
+            <div class="rounded-2xl bg-[#E8DEF8] dark:bg-[#4A4458] flex items-center justify-center">${escapeHTML(text)} 4</div>
+          </div>
+        `
+      },
+      'canvas-area': {
+        label: 'Canvas Area (캔버스 영역)',
+        defaultText: '드로잉 · 인터랙션 캔버스',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 276,
+        defaultHeight: 176,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-white dark:bg-[#141218] border border-[#79747E] dark:border-[#938F99] p-3 flex flex-col justify-between text-xs shadow-inner">
+            <span class="text-[10px] font-mono text-[#79747E]">Canvas Surface</span>
+            <span class="self-center font-semibold text-[#49454F] dark:text-[#CAC4D0]">${escapeHTML(text)}</span>
+            <span class="text-[10px] text-right font-mono text-[#79747E]">100%</span>
+          </div>
+        `
+      },
+      'floating-toolbar': {
+        label: 'Floating Toolbar / Palette (플로팅 툴바)',
+        defaultText: '도구 팔레트',
+        defaultX: 52,
+        defaultY: 72,
+        defaultWidth: 236,
+        defaultHeight: 48,
+        renderInner: () => `
+          <div class="w-full h-full rounded-full bg-[#313033] dark:bg-[#E6E0E9] text-[#F4EFF4] dark:text-[#313033] px-4 shadow-xl flex items-center justify-between text-xs font-bold">
+            <span>✎</span><span>⊞</span><span>🖼</span><span>🔗</span><span>⋮</span>
+          </div>
+        `
+      },
+      'divider-line': {
+        label: 'Divider (디바이더 구분선)',
+        defaultText: '구분선',
+        defaultX: 48,
+        defaultY: 72,
+        defaultWidth: 280,
+        defaultHeight: 28,
+        renderInner: () => `
+          <div class="w-full h-full flex items-center px-2">
+            <div class="w-full h-px bg-[#CAC4D0] dark:bg-[#49454F]"></div>
+          </div>
+        `
+      },
+      'drag-handle-guide': {
+        label: 'Drag Handle & Drop Guide (드래그 핸들 · 드롭 가이드)',
+        defaultText: '여기로 드래그하여 순서 변경',
+        defaultX: 48,
+        defaultY: 68,
+        defaultWidth: 276,
+        defaultHeight: 54,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#E8DEF8]/60 dark:bg-[#4A4458]/60 border-2 border-dashed border-[#6750A4] dark:border-[#D0BCFF] px-3.5 flex items-center gap-2.5 text-xs font-semibold text-[#6750A4] dark:text-[#D0BCFF]">
+            <span class="text-sm">⋮⋮</span>
+            <span class="truncate">${escapeHTML(text)}</span>
+          </div>
+        `
+      },
+      // =========================================================================
+      // 제스처 · 인터랙션 표시 전용 템플릿 (반투명 넓은 화살표 4방향 & 탭/더블탭 손가락)
+      // =========================================================================
+      'gesture-slide-up': {
+        label: '제스처 · 위로 슬라이드',
+        defaultText: '위로 스와이프',
+        defaultX: 110,
+        defaultY: 140,
+        defaultWidth: 96,
+        defaultHeight: 164,
+        renderInner: () => `
+          <div class="w-full h-full flex items-center justify-center pointer-events-none select-none">
+            <svg viewBox="0 0 100 170" class="w-full h-full drop-shadow-md">
+              <defs>
+                <linearGradient id="gSlideUp" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stop-color="#6366f1" stop-opacity="0.14"/>
+                  <stop offset="100%" stop-color="#6366f1" stop-opacity="0.68"/>
+                </linearGradient>
+              </defs>
+              <polygon points="50,12 90,62 68,62 68,158 32,158 32,62 10,62" fill="url(#gSlideUp)" stroke="#6366f1" stroke-opacity="0.65" stroke-width="2.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        `
+      },
+      'gesture-slide-down': {
+        label: '제스처 · 아래로 슬라이드',
+        defaultText: '아래로 스와이프',
+        defaultX: 110,
+        defaultY: 140,
+        defaultWidth: 96,
+        defaultHeight: 164,
+        renderInner: () => `
+          <div class="w-full h-full flex items-center justify-center pointer-events-none select-none">
+            <svg viewBox="0 0 100 170" class="w-full h-full drop-shadow-md">
+              <defs>
+                <linearGradient id="gSlideDown" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#6366f1" stop-opacity="0.14"/>
+                  <stop offset="100%" stop-color="#6366f1" stop-opacity="0.68"/>
+                </linearGradient>
+              </defs>
+              <polygon points="50,158 90,108 68,108 68,12 32,12 32,108 10,108" fill="url(#gSlideDown)" stroke="#6366f1" stroke-opacity="0.65" stroke-width="2.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        `
+      },
+      'gesture-slide-left': {
+        label: '제스처 · 왼쪽 슬라이드',
+        defaultText: '왼쪽 스와이프',
+        defaultX: 90,
+        defaultY: 160,
+        defaultWidth: 164,
+        defaultHeight: 96,
+        renderInner: () => `
+          <div class="w-full h-full flex items-center justify-center pointer-events-none select-none">
+            <svg viewBox="0 0 170 100" class="w-full h-full drop-shadow-md">
+              <defs>
+                <linearGradient id="gSlideLeft" x1="1" y1="0" x2="0" y2="0">
+                  <stop offset="0%" stop-color="#6366f1" stop-opacity="0.14"/>
+                  <stop offset="100%" stop-color="#6366f1" stop-opacity="0.68"/>
+                </linearGradient>
+              </defs>
+              <polygon points="12,50 62,10 62,32 158,32 158,68 62,68 62,90" fill="url(#gSlideLeft)" stroke="#6366f1" stroke-opacity="0.65" stroke-width="2.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        `
+      },
+      'gesture-slide-right': {
+        label: '제스처 · 오른쪽 슬라이드',
+        defaultText: '오른쪽 스와이프',
+        defaultX: 90,
+        defaultY: 160,
+        defaultWidth: 164,
+        defaultHeight: 96,
+        renderInner: () => `
+          <div class="w-full h-full flex items-center justify-center pointer-events-none select-none">
+            <svg viewBox="0 0 170 100" class="w-full h-full drop-shadow-md">
+              <defs>
+                <linearGradient id="gSlideRight" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#6366f1" stop-opacity="0.14"/>
+                  <stop offset="100%" stop-color="#6366f1" stop-opacity="0.68"/>
+                </linearGradient>
+              </defs>
+              <polygon points="158,50 108,10 108,32 12,32 12,68 108,68 108,90" fill="url(#gSlideRight)" stroke="#6366f1" stroke-opacity="0.65" stroke-width="2.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        `
+      },
+      'gesture-tap-finger': {
+        label: '제스처 · 단일 탭 (Tap)',
+        defaultText: '탭 (Tap)',
+        defaultX: 120,
+        defaultY: 150,
+        defaultWidth: 96,
+        defaultHeight: 112,
+        renderInner: () => `
+          <div class="w-full h-full flex items-center justify-center pointer-events-none select-none">
+            <svg viewBox="0 0 100 116" class="w-full h-full drop-shadow-md">
+              <circle cx="44" cy="30" r="22" fill="#f59e0b" fill-opacity="0.18" stroke="#f59e0b" stroke-opacity="0.6" stroke-width="2.5"/>
+              <circle cx="44" cy="30" r="11" fill="#f59e0b" fill-opacity="0.32"/>
+              <path d="M44 26 v34 m0 -20 c0-4 9-4 9 1 v19 m0 -16 c0-4 9-4 9 1 v16 m0 -13 c0-3 8-3 8 1 v16 c0 14-9 23-22 23 h-6 c-10 0-16-6-21-15 l-6-10 c-2-4 2-8 6-6 l9 5 v-36 c0-5 8-5 8 0 z" fill="#ffffff" fill-opacity="0.92" stroke="#1e293b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        `
+      },
+      'gesture-double-tap-finger': {
+        label: '제스처 · 더블 탭 (Double Tap)',
+        defaultText: '더블 탭 (×2)',
+        defaultX: 120,
+        defaultY: 150,
+        defaultWidth: 108,
+        defaultHeight: 116,
+        renderInner: () => `
+          <div class="w-full h-full flex items-center justify-center pointer-events-none select-none">
+            <svg viewBox="0 0 112 120" class="w-full h-full drop-shadow-md">
+              <circle cx="44" cy="30" r="25" fill="none" stroke="#f59e0b" stroke-opacity="0.55" stroke-width="2.2" stroke-dasharray="4 3"/>
+              <circle cx="44" cy="30" r="16" fill="#f59e0b" fill-opacity="0.22" stroke="#f59e0b" stroke-opacity="0.75" stroke-width="2.4"/>
+              <path d="M44 27 v34 m0 -20 c0-4 9-4 9 1 v19 m0 -16 c0-4 9-4 9 1 v16 m0 -13 c0-3 8-3 8 1 v16 c0 14-9 23-22 23 h-6 c-10 0-16-6-21-15 l-6-10 c-2-4 2-8 6-6 l9 5 v-36 c0-5 8-5 8 0 z" fill="#ffffff" fill-opacity="0.92" stroke="#1e293b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="66" y="8" width="34" height="20" rx="10" fill="#f59e0b" fill-opacity="0.9"/>
+              <text x="83" y="21" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff" font-family="Inter, sans-serif">×2</text>
+            </svg>
+          </div>
+        `
       }
     };
 
@@ -2876,48 +4072,90 @@
         { type: 'filled-button', title: 'Button · Filled (기본 버튼)', desc: '주요 실행 액션을 위한 채움 버튼', icon: '<rect x="3" y="7" width="18" height="10" rx="5" fill="currentColor" fill-opacity="0.2"/><line x1="8" y1="12" x2="16" y2="12"/>' },
         { type: 'outlined-button', title: 'Button · Outlined (외곽선 버튼)', desc: '보조 액션을 위한 외곽선 버튼', icon: '<rect x="3" y="7" width="18" height="10" rx="5"/><line x1="8" y1="12" x2="16" y2="12"/>' },
         { type: 'checkbox-group', title: 'Checkbox (체크박스)', desc: '약관 동의 · 다중 항목 선택 체크박스', icon: '<rect x="4" y="4" width="16" height="16" rx="3"/><polyline points="8 12 11 15 16 9"/>' },
+        { type: 'combobox-autocomplete', title: 'Combobox / Autocomplete (콤보박스)', desc: '검색 입력과 자동완성 후보가 결합된 선택창', icon: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><line x1="3" y1="10" x2="21" y2="10"/>' },
+        { type: 'color-picker', title: 'Color Picker (컬러 피커)', desc: '팔레트 스와치로 색상을 선택하는 입력기', icon: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/>' },
+        { type: 'date-picker', title: 'Date Picker (날짜 선택기)', desc: '월간 달력 그리드에서 날짜를 선택하는 위젯', icon: '<rect x="3" y="5" width="18" height="16" rx="2.5"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/>' },
         { type: 'dropdown-menu', title: 'Dropdown (드롭다운)', desc: '클릭 시 목록이 펼쳐지는 선택 드롭다운', icon: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><polyline points="14 11 16.5 13.5 19 11"/><line x1="7" y1="12" x2="11" y2="12"/>' },
+        { type: 'file-uploader-dropzone', title: 'File Uploader / Dropzone (파일 업로더)', desc: '파일 드래그 앤 드롭 및 업로드 영역', icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>' },
+        { type: 'filter-chip-group', title: 'Filter Chip (필터 칩 그룹)', desc: '다중 조건 필터링을 토글하는 칩 목록', icon: '<rect x="3" y="8" width="8" height="8" rx="4"/><rect x="13" y="8" width="8" height="8" rx="4"/>' },
         { type: 'form-container', title: 'Form (폼)', desc: '입력 필드와 제출 버튼이 묶인 입력 폼', icon: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><rect x="8" y="16" width="8" height="2" rx="1"/>' },
         { type: 'text-box', title: 'Input Field · 단문 (입력 필드)', desc: '단일 줄 텍스트 입력 필드', icon: '<rect x="3" y="7" width="18" height="10" rx="2"/><line x1="7" y1="10" x2="7" y2="14"/>' },
         { type: 'multiline-textbox', title: 'Input Field · 다중 줄 (멀티라인)', desc: '메모 · 상세 내용 입력용 텍스트 박스', icon: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/>' },
+        { type: 'password-field', title: 'Password Field (비밀번호 입력 필드)', desc: '마스킹 처리 및 표시 전환 아이콘 입력창', icon: '<rect x="3" y="7" width="18" height="10" rx="2"/><circle cx="8" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="16" cy="12" r="1" fill="currentColor"/>' },
         { type: 'time-date-modal', title: 'Picker (날짜·시간 선택기)', desc: 'DatePicker / TimePicker 선택 모달', icon: '<rect x="3" y="5" width="18" height="16" rx="2.5"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="3" y1="10" x2="21" y2="10"/>' },
         { type: 'radio-group', title: 'Radio Buttons (라디오 버튼)', desc: '여러 옵션 중 하나만 선택하는 라디오 그룹', icon: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>' },
         { type: 'search-bar', title: 'Search Field (검색 필드)', desc: '검색어 입력 및 지우기(✕) 검색창', icon: '<circle cx="11" cy="11" r="6"/><line x1="20" y1="20" x2="15.5" y2="15.5"/>' },
         { type: 'slider-control', title: 'Slider Controls (슬라이더)', desc: '음량 · 밝기 수치를 조절하는 슬라이더', icon: '<line x1="4" y1="12" x2="20" y2="12"/><circle cx="14" cy="12" r="3" fill="currentColor"/>' },
         { type: 'stepper-counter', title: 'Stepper (스테퍼)', desc: '− / + 버튼으로 수량 · 단계를 증감하는 컨트롤', icon: '<rect x="3" y="7" width="18" height="10" rx="5"/><line x1="7" y1="12" x2="10" y2="12"/><line x1="15.5" y1="10.5" x2="15.5" y2="13.5"/><line x1="14" y1="12" x2="17" y2="12"/>' },
+        { type: 'time-picker', title: 'Time Picker (시간 선택기)', desc: '시 · 분 및 오전/오후 시간을 설정하는 입력기', icon: '<circle cx="12" cy="12" r="8"/><polyline points="12 7 12 12 15 14"/>' },
         { type: 'toggle-switch-item', title: 'Toggle (토글 스위치)', desc: 'ON / OFF 상태를 전환하는 토글 스위치', icon: '<rect x="3" y="7" width="18" height="10" rx="5"/><circle cx="16" cy="12" r="3" fill="currentColor"/>' }
       ],
       nav: [
         { type: 'top-app-bar', title: 'TopAppBar (상단 앱바)', desc: '뒤로가기 · 화면 타이틀 · 우측 액션 바', icon: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="7" y1="7.5" x2="11" y2="7.5"/>' },
+        { type: 'anchor-toc-nav', title: 'Anchor / TOC (앵커 · 목차 내비게이션)', desc: '문서 섹션 간 빠른 이동을 위한 목차 링크', icon: '<line x1="6" y1="6" x2="6" y2="18"/><line x1="10" y1="8" x2="19" y2="8"/><line x1="10" y1="12" x2="17" y2="12"/><line x1="10" y1="16" x2="15" y2="16"/>' },
         { type: 'breadcrumb-nav', title: 'Breadcrumb (브레드크럼)', desc: '현재 화면의 상위 경로 계층 표시줄', icon: '<line x1="3" y1="12" x2="7" y2="12"/><polyline points="10 9 13 12 10 15"/><line x1="16" y1="12" x2="21" y2="12"/>' },
+        { type: 'button-group', title: 'Button Group (버튼 그룹)', desc: '연관된 동작 버튼을 하나로 묶은 그룹', icon: '<rect x="3" y="7" width="18" height="10" rx="2.5"/><line x1="9" y1="7" x2="9" y2="17"/><line x1="15" y1="7" x2="15" y2="17"/>' },
         { type: 'doner-menu', title: 'Döner Menu (도너 메뉴)', desc: '길이가 다른 가로 3선 필터 · 정렬 메뉴', icon: '<line x1="4" y1="7" x2="20" y2="7"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="17" x2="14" y2="17"/>' },
+        { type: 'extended-fab', title: 'Extended FAB (확장형 FAB)', desc: '아이콘과 텍스트 라벨이 결합된 플로팅 버튼', icon: '<rect x="3" y="7" width="18" height="10" rx="5"/><line x1="8" y1="12" x2="16" y2="12"/>' },
+        { type: 'fab-button', title: 'FAB (플로팅 액션 버튼)', desc: '화면의 대표 핵심 동작을 실행하는 플로팅 버튼', icon: '<rect x="6" y="6" width="12" height="12" rx="4"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/>' },
         { type: 'hamburger-menu', title: 'Hamburger Menu (햄버거 메뉴)', desc: '전체 내비게이션을 여는 ☰ 메뉴 버튼', icon: '<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>' },
         { type: 'kebab-menu', title: 'Kebab Menu (케밥 메뉴)', desc: '세로 점 3개(⋮) 더보기 액션 버튼', icon: '<circle cx="12" cy="6" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="18" r="1.5" fill="currentColor"/>' },
         { type: 'meatballs-menu', title: 'Meatballs Menu (미트볼 메뉴)', desc: '가로 점 3개(⋯) 옵션 버튼', icon: '<circle cx="6" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="18" cy="12" r="1.5" fill="currentColor"/>' },
+        { type: 'navigation-rail', title: 'Navigation Rail (내비게이션 레일)', desc: '태블릿 · 가로 화면용 측면 세로 내비게이션', icon: '<rect x="3" y="3" width="6" height="18" rx="2"/><circle cx="6" cy="8" r="1" fill="currentColor"/><circle cx="6" cy="13" r="1" fill="currentColor"/>' },
         { type: 'context-overflow-menu', title: 'Overflow Menu (컨텍스트 메뉴)', desc: '수정 · 복제 · 보관 · 삭제 팝업 메뉴', icon: '<rect x="5" y="4" width="14" height="16" rx="2.5"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/>' },
+        { type: 'page-indicator-dots', title: 'Page Indicator / Dots (페이지 인디케이터)', desc: '현재 슬라이드 위치를 나타내는 도트 인디케이터', icon: '<circle cx="7" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="1.5"/><circle cx="17" cy="12" r="1.5"/>' },
         { type: 'pagination-bar', title: 'Pagination (페이지네이션)', desc: '페이지 번호 전환 내비게이션 바', icon: '<polyline points="7 9 4 12 7 15"/><circle cx="12" cy="12" r="2" fill="currentColor"/><polyline points="17 9 20 12 17 15"/>' },
         { type: 'sidebar-drawer', title: 'Sidebar (사이드바 드로어)', desc: '측면 탐색 메뉴 리스트 드로어', icon: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="5.5" y1="8" x2="7" y2="8"/><line x1="5.5" y1="12" x2="7" y2="12"/>' },
+        { type: 'split-button', title: 'Split Button (스플릿 버튼)', desc: '기본 실행과 드롭다운 선택이 분리된 복합 버튼', icon: '<rect x="3" y="7" width="18" height="10" rx="5"/><line x1="15" y1="7" x2="15" y2="17"/>' },
+        { type: 'step-indicator', title: 'Step Indicator (스텝퍼 인디케이터)', desc: '다단계 진행 프로세스 단계 표시 바', icon: '<circle cx="6" cy="12" r="2" fill="currentColor"/><line x1="8" y1="12" x2="16" y2="12"/><circle cx="18" cy="12" r="2"/>' },
         { type: 'bottom-nav-bar', title: 'Tab Bar · 하단 (NavigationBar)', desc: '홈 · 탐색 · 알림 · 마이 하단 탭 바', icon: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><line x1="3" y1="14" x2="21" y2="14"/><circle cx="7.5" cy="16.5" r="1" fill="currentColor"/><circle cx="12" cy="16.5" r="1" fill="currentColor"/><circle cx="16.5" cy="16.5" r="1" fill="currentColor"/>' },
-        { type: 'segmented-tabs', title: 'Tab Bar · 세그먼트 (SegmentedTab)', desc: '전체 · 진행중 · 완료 상태 전환 탭', icon: '<rect x="3" y="7" width="18" height="10" rx="5"/><line x1="9" y1="7" x2="9" y2="17"/><line x1="15" y1="7" x2="15" y2="17"/>' }
+        { type: 'segmented-tabs', title: 'Tab Bar · 세그먼트 (SegmentedTab)', desc: '전체 · 진행중 · 완료 상태 전환 탭', icon: '<rect x="3" y="7" width="18" height="10" rx="5"/><line x1="9" y1="7" x2="9" y2="17"/><line x1="15" y1="7" x2="15" y2="17"/>' },
+        { type: 'text-ghost-button', title: 'Text / Ghost Button (텍스트 · 고스트 버튼)', desc: '배경 없이 텍스트로만 구성된 경량 버튼', icon: '<line x1="6" y1="12" x2="18" y2="12"/>' },
+        { type: 'text-link', title: 'Text Link (텍스트 링크)', desc: '밑줄 스타일로 페이지 이동을 유도하는 링크', icon: '<line x1="6" y1="10" x2="18" y2="10"/><line x1="6" y1="14" x2="18" y2="14"/>' }
       ],
       info: [
+        { type: 'avatar-single', title: 'Avatar (아바타)', desc: '사용자 프로필 이미지 및 접속 상태 배지', icon: '<circle cx="12" cy="9" r="3"/><path d="M6 19a6 6 0 0 1 12 0"/>' },
+        { type: 'avatar-group', title: 'Avatar Group (아바타 그룹)', desc: '여러 참여자 프로필을 겹쳐 표시하는 그룹', icon: '<circle cx="9" cy="12" r="4"/><circle cx="15" cy="12" r="4"/>' },
         { type: 'badge-chip', title: 'Badge (뱃지)', desc: '새 알림 · 개수 강조용 상태 뱃지', icon: '<rect x="5" y="7" width="14" height="10" rx="5" fill="currentColor" fill-opacity="0.2"/><circle cx="12" cy="12" r="2" fill="currentColor"/>' },
+        { type: 'charts-graphs', title: 'Charts & Graphs (차트 및 그래프)', desc: '막대 · 추이 데이터를 시각화하는 차트 카드', icon: '<line x1="6" y1="18" x2="6" y2="12"/><line x1="12" y1="18" x2="12" y2="7"/><line x1="18" y1="18" x2="18" y2="10"/>' },
+        { type: 'code-blockquote', title: 'Code Block / Blockquote (코드 블록 · 인용구)', desc: '코드 스니펫 및 강조 인용문 컨테이너', icon: '<polyline points="8 8 4 12 8 16"/><polyline points="16 8 20 12 16 16"/>' },
         { type: 'comment-box', title: 'Comment (댓글)', desc: '사용자 프로필과 댓글 문구 카드', icon: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>' },
+        { type: 'data-table', title: 'Data Table (데이터 테이블)', desc: '행과 열로 구조화된 표 형태 데이터 목록', icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="20"/>' },
+        { type: 'error-state-card', title: 'Error State (에러 상태 화면)', desc: '오류 안내 및 재시도 버튼을 포함한 상태 카드', icon: '<circle cx="12" cy="12" r="8"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.8" fill="currentColor"/>' },
         { type: 'feed-card', title: 'Feed (피드)', desc: '게시물 본문과 좋아요 · 댓글 반응 피드', icon: '<rect x="4" y="4" width="16" height="16" rx="2.5"/><rect x="7" y="7" width="10" height="6" rx="1"/><line x1="7" y1="16" x2="15" y2="16"/>' },
         { type: 'square-icon', title: 'Icon (사각 아이콘 버튼)', desc: '단독 배치 가능한 사각 아이콘 요소', icon: '<rect x="4" y="4" width="16" height="16" rx="4"/><polygon points="12 7.5 13.4 10.4 16.5 10.8 14.2 13 14.8 16.1 12 14.6 9.2 16.1 9.8 13 7.5 10.8 10.6 10.4 12 7.5"/>' },
+        { type: 'image-thumbnail', title: 'Image / Thumbnail (이미지 · 썸네일)', desc: '미디어 비율을 유지하는 이미지 플레이스홀더', icon: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9" r="1.5"/><polyline points="21 15 16 10 5 21"/>' },
+        { type: 'inline-banner-callout', title: 'Inline Banner / Callout (인라인 배너)', desc: '화면 내 주요 공지 · 주의 사항 강조 박스', icon: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><line x1="8" y1="12" x2="17" y2="12"/>' },
+        { type: 'key-value-list', title: 'Key-Value List (키-값 속성 목록)', desc: '항목명과 속성 값을 좌우로 정렬한 상세 목록', icon: '<line x1="4" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="10" y2="16"/><line x1="14" y1="16" x2="20" y2="16"/>' },
+        { type: 'list-item-row', title: 'List Item (리스트 아이템)', desc: '아이콘 · 제목 · 보조 텍스트로 구성된 목록 행', icon: '<circle cx="6" cy="12" r="2"/><line x1="11" y1="10" x2="19" y2="10"/><line x1="11" y1="14" x2="16" y2="14"/>' },
         { type: 'loading-modal', title: 'Loader (로더 / 대기 모달)', desc: '회전 스피너와 안내 문구 로딩 표시', icon: '<path d="M12 3a9 9 0 1 0 9 9"/>' },
+        { type: 'media-player', title: 'Media Player (비디오 · 오디오 플레이어)', desc: '재생 바 및 컨트롤 버튼이 있는 미디어 위젯', icon: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><polygon points="10 9 16 12 10 15 10 9" fill="currentColor"/>' },
+        { type: 'popover-box', title: 'Popover (팝오버)', desc: '트리거 근처에 떠서 부가 정보를 보여주는 카드', icon: '<rect x="4" y="5" width="16" height="14" rx="2.5"/><line x1="8" y1="10" x2="16" y2="10"/>' },
         { type: 'progress-indicator', title: 'Progress Bar (진행률 표시줄)', desc: '단계 · 로딩 진행도를 퍼센트로 표시', icon: '<rect x="3" y="9" width="18" height="6" rx="3"/><rect x="3" y="9" width="11" height="6" rx="3" fill="currentColor"/>' },
+        { type: 'ripple-touch-feedback', title: 'Ripple / Touch Feedback (터치 피드백)', desc: '안드로이드 터치 파동 효과를 시뮬레이션하는 영역', icon: '<circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="12" r="7"/>' },
+        { type: 'skeleton-screen', title: 'Skeleton Screen (스켈레톤 스크린)', desc: '콘텐츠 로딩 중 레이아웃 골격을 보여주는 자리표시자', icon: '<circle cx="7" cy="9" r="2.5"/><line x1="12" y1="8" x2="19" y2="8"/><rect x="4" y="14" width="16" height="4" rx="1"/>' },
+        { type: 'snackbar', title: 'Snackbar / Toast (알림 배너)', desc: '하단 작업 결과 알림 및 실행취소 배너', icon: '<rect x="3" y="13" width="18" height="6" rx="2"/><line x1="6" y1="16" x2="14" y2="16"/>' },
+        { type: 'status-pill-tag', title: 'Status Pill / Tag (상태 라벨 · 필)', desc: '진행 상태 · 완료 여부를 색상 점으로 표시하는 필', icon: '<rect x="4" y="8" width="16" height="8" rx="4"/><circle cx="8" cy="12" r="1.5" fill="currentColor"/>' },
         { type: 'tag-chip', title: 'Tag (태그)', desc: '키워드 · 카테고리 분류용 태그 칩', icon: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/>' },
+        { type: 'timeline-view', title: 'Timeline (타임라인)', desc: '시간순 이벤트 이력을 수직 선으로 연결한 목록', icon: '<line x1="7" y1="5" x2="7" y2="19"/><circle cx="7" cy="7" r="1.5" fill="currentColor"/><circle cx="7" cy="12" r="1.5"/><circle cx="7" cy="17" r="1.5"/>' },
         { type: 'tooltip-bubble', title: 'Tooltip (툴팁)', desc: '기능 설명을 띄우는 말풍선 안내 바', icon: '<rect x="3" y="5" width="18" height="11" rx="3"/><polyline points="10 16 12 19 14 16"/>' },
-        { type: 'snackbar', title: 'Snackbar / Toast (알림 배너)', desc: '하단 작업 결과 알림 및 실행취소 배너', icon: '<rect x="3" y="13" width="18" height="6" rx="2"/><line x1="6" y1="16" x2="14" y2="16"/>' }
+        { type: 'tree-view', title: 'Tree View (트리 뷰)', desc: '폴더 및 하위 항목을 계층 구조로 펼치는 트리', icon: '<line x1="6" y1="5" x2="6" y2="19"/><line x1="6" y1="10" x2="12" y2="10"/><line x1="6" y1="16" x2="12" y2="16"/>' },
+        { type: 'typography-block', title: 'Typography (타이포그래피 블록)', desc: '제목과 본문 위계를 표현하는 텍스트 블록', icon: '<polyline points="5 7 5 5 19 5 19 7"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="9" y1="19" x2="15" y2="19"/>' },
+        { type: 'validation-message', title: 'Validation Message (유효성 검사 메시지)', desc: '입력 오류 원인을 안내하는 인라인 경고 문구', icon: '<circle cx="12" cy="12" r="8"/><line x1="12" y1="8" x2="12" y2="13"/>' }
       ],
       content: [
+        { type: 'canvas-area', title: 'Canvas Area (캔버스 영역)', desc: '자유 드로잉 및 인터랙션 배치용 서피스 영역', icon: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 15c2-4 4-4 6 0s3 2 4-2"/>' },
         { type: 'card-container', title: 'Card (기본 카드)', desc: '콘텐츠를 그룹핑하는 ElevatedCard', icon: '<rect x="4" y="5" width="16" height="14" rx="3"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/>' },
         { type: 'empty-state-card', title: 'Card · Empty State (빈 화면 카드)', desc: '데이터 없음 안내 문구와 CTA 카드', icon: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="11" r="3"/><line x1="9.5" y1="13.5" x2="14.5" y2="8.5"/>' },
+        { type: 'carousel-slider', title: 'Carousel (캐러셀)', desc: '좌우 버튼으로 슬라이드를 넘기는 배너', icon: '<rect x="6" y="5" width="12" height="14" rx="2.5"/><line x1="2.5" y1="7" x2="2.5" y2="17"/><line x1="21.5" y1="7" x2="21.5" y2="17"/>' },
+        { type: 'divider-line', title: 'Divider (디바이더 구분선)', desc: '콘텐츠 섹션 사이를 시각적으로 분리하는 구분선', icon: '<line x1="3" y1="12" x2="21" y2="12"/>' },
+        { type: 'drag-handle-guide', title: 'Drag Handle & Drop Guide (드래그 가이드)', desc: '항목 순서 이동 및 드롭 위치를 안내하는 가이드', icon: '<circle cx="9" cy="8" r="1" fill="currentColor"/><circle cx="15" cy="8" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="16" r="1" fill="currentColor"/><circle cx="15" cy="16" r="1" fill="currentColor"/>' },
+        { type: 'floating-toolbar', title: 'Floating Toolbar / Palette (플로팅 툴바)', desc: '편집 도구를 한곳에 모은 플로팅 액션 팔레트', icon: '<rect x="3" y="8" width="18" height="8" rx="4"/><circle cx="8" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="16" cy="12" r="1" fill="currentColor"/>' },
         { type: 'empty-box', title: 'Frame · 점선 사각 박스', desc: '배치 영역 구획용 점선 사각 프레임', icon: '<rect x="4" y="5" width="16" height="14" rx="2.5" stroke-dasharray="3 2.5"/>' },
         { type: 'empty-solid-rect', title: 'Frame · 실선 사각 프레임', desc: '단색 외곽선 사각 컨테이너', icon: '<rect x="4" y="5" width="16" height="14" rx="2.5"/>' },
         { type: 'device-frame', title: 'Frame · Android Screen (360×640)', desc: '모바일 앱 화면 비율 기준 디바이스 프레임', icon: '<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><line x1="10.5" y1="5" x2="13.5" y2="5"/><line x1="10" y1="19" x2="14" y2="19"/>' },
-        { type: 'carousel-slider', title: 'Carousel (캐러셀)', desc: '좌우 버튼으로 슬라이드를 넘기는 배너', icon: '<rect x="6" y="5" width="12" height="14" rx="2.5"/><line x1="2.5" y1="7" x2="2.5" y2="17"/><line x1="21.5" y1="7" x2="21.5" y2="17"/>' },
+        { type: 'grid-layout', title: 'Grid Layout (그리드 레이아웃)', desc: '2×2 격자 구조로 카드를 배치하는 컨테이너', icon: '<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>' },
+        { type: 'general-modal-dialog', title: 'Modal / Dialog (일반 정보 모달)', desc: '안내 문구와 단일 확인 버튼이 있는 표준 모달', icon: '<rect x="4" y="5" width="16" height="14" rx="3"/><line x1="8" y1="10" x2="16" y2="10"/>' },
         { type: 'alert-dialog', title: 'Modal · 기본 AlertDialog', desc: '확인 / 취소 버튼이 있는 표준 모달', icon: '<rect x="4" y="5" width="16" height="14" rx="3"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="12" y1="15" x2="17" y2="15"/>' },
         { type: 'center-text-modal', title: 'Modal · 중앙 텍스트 모달', desc: '모달 정중앙에 문구를 표시하는 카드', icon: '<rect x="4" y="5" width="16" height="14" rx="3"/><line x1="8" y1="12" x2="16" y2="12"/>' },
         { type: 'bottom-sheet', title: 'Modal · ModalBottomSheet', desc: '하단에서 올라오는 바텀시트 모달', icon: '<rect x="4" y="9" width="16" height="11" rx="3"/><line x1="10" y1="12" x2="14" y2="12"/>' },
@@ -2934,7 +4172,9 @@
         { type: 'onboarding-coach-modal', title: 'Modal · 온보딩 툴팁 모달', desc: '단계별 스텝 인디케이터 안내 모달', icon: '<circle cx="12" cy="12" r="8"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.8" fill="currentColor"/>' },
         { type: 'filter-sort-sheet', title: 'Modal · 필터 / 정렬 바텀시트', desc: '다중 필터 칩 및 초기화/적용 시트', icon: '<polygon points="22 3 2 3 10 12.5 10 19 14 21 14 12.5 22 3"/>' },
         { type: 'otp-pin-modal', title: 'Modal · 인증번호 / PIN 입력', desc: '4자리 보안 코드 확인 다이얼로그', icon: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>' },
-        { type: 'payment-summary-sheet', title: 'Modal · 결제 확인 / 영수증', desc: '결제 수단 및 금액 승인 바텀시트', icon: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="7" y1="15" x2="11" y2="15"/>' }
+        { type: 'payment-summary-sheet', title: 'Modal · 결제 확인 / 영수증', desc: '결제 수단 및 금액 승인 바텀시트', icon: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="7" y1="15" x2="11" y2="15"/>' },
+        { type: 'side-sheet', title: 'Side Sheet (사이드 시트)', desc: '우측 측면에서 슬라이드되어 보조 옵션을 여는 시트', icon: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><line x1="14" y1="4" x2="14" y2="20"/>' },
+        { type: 'split-view', title: 'Split View (스플릿 뷰)', desc: '좌측 목록과 우측 상세 화면을 분할 배치한 레이아웃', icon: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><line x1="10" y1="4" x2="10" y2="20"/>' }
       ]
     };
 
@@ -2959,7 +4199,8 @@
         x: template.defaultX + offset,
         y: template.defaultY + offset,
         width: template.defaultWidth,
-        height: template.defaultHeight
+        height: template.defaultHeight,
+        orientation: getDefaultOrientation(type)
       });
 
       selectedModalId = newModalId;
@@ -3174,6 +4415,7 @@
         setWorkspaceMenuState(false);
         setLayerPopupState(false);
         setModalListPopupState(false);
+        setGesturePopupState(false);
         setExportImagePopupState(false);
         setWorkspaceSettingsState(false);
         renderCanvasListPopup();
@@ -3305,6 +4547,7 @@
       setWorkspaceMenuState(false);
       setLayerPopupState(false);
       setModalListPopupState(false);
+      setGesturePopupState(false);
       renderWorkspaceLayers();
 
       // 메인 프로젝트 목록 캔버스 및 메인 플로팅 버튼 숨김
@@ -3324,6 +4567,7 @@
       setWorkspaceMenuState(false);
       setLayerPopupState(false);
       setModalListPopupState(false);
+      setGesturePopupState(false);
       setExportImagePopupState(false);
       setCanvasListPopupState(false);
       setWorkspaceSettingsState(false);
@@ -3381,6 +4625,7 @@
         setWorkspaceMenuState(false);
         setLayerPopupState(false);
         setModalListPopupState(false);
+        setGesturePopupState(false);
         setExportImagePopupState(false);
         workspaceSettingsOverlay.classList.remove('hidden');
         workspaceSettingsOverlay.classList.add('flex');
@@ -3449,6 +4694,7 @@
         setWorkspaceMenuState(false);
         setLayerPopupState(false);
         setModalListPopupState(false);
+        setGesturePopupState(false);
         setExportImagePopupState(false);
         setCanvasListPopupState(false);
         setWorkspaceSettingsState(false);
@@ -3592,6 +4838,7 @@
       if (isLayerPopupOpen) {
         setWorkspaceMenuState(false);
         setModalListPopupState(false);
+        setGesturePopupState(false);
         renderLayerPopupList();
         layerPopupOverlay.classList.remove('hidden');
         layerPopupOverlay.classList.add('flex');
@@ -3602,6 +4849,47 @@
     }
 
     /**
+     * 제스처 · 인터랙션 표시 팝업 열기 / 닫기
+     */
+    function setGesturePopupState(open) {
+      isGesturePopupOpen = open;
+      if (isGesturePopupOpen) {
+        setWorkspaceMenuState(false);
+        setLayerPopupState(false);
+        setModalListPopupState(false);
+        setExportImagePopupState(false);
+        setCanvasListPopupState(false);
+        setWorkspaceSettingsState(false);
+        gesturePopupOverlay.classList.remove('hidden');
+        gesturePopupOverlay.classList.add('flex');
+      } else {
+        gesturePopupOverlay.classList.add('hidden');
+        gesturePopupOverlay.classList.remove('flex');
+      }
+    }
+
+    openGesturePopupBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setGesturePopupState(true);
+    });
+
+    closeGesturePopupBtn.addEventListener('click', () => setGesturePopupState(false));
+    gesturePopupOverlay.addEventListener('click', (e) => {
+      if (e.target === gesturePopupOverlay) setGesturePopupState(false);
+    });
+
+    document.querySelectorAll('.gesture-pick-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const gestureType = btn.dataset.gestureType;
+        if (gestureType) {
+          addComponentToCanvas(gestureType);
+          setGesturePopupState(false);
+        }
+      });
+    });
+
+    /**
      * 모달 리스트 팝업 열기 / 닫기
      */
     function setModalListPopupState(open) {
@@ -3609,6 +4897,7 @@
       if (isModalListPopupOpen) {
         setWorkspaceMenuState(false);
         setLayerPopupState(false);
+        setGesturePopupState(false);
         renderModalListCategory(activeModalCategoryTab);
         modalListPopupOverlay.classList.remove('hidden');
         modalListPopupOverlay.classList.add('flex');
@@ -3627,6 +4916,7 @@
         setWorkspaceMenuState(false);
         setLayerPopupState(false);
         setModalListPopupState(false);
+        setGesturePopupState(false);
         setCanvasListPopupState(false);
         setWorkspaceSettingsState(false);
         const currentProject = projects.find((p) => p.id === activeProjectId);
@@ -3687,6 +4977,7 @@
         el.style.height = `${itemHeight}px`;
         el.style.zIndex = String(10 + index);
         el.innerHTML = template.renderInner(displayText);
+        applyOrientationToElement(el, item);
         applyCustomTextsAndIconsToElement(el, item);
         stage.appendChild(el);
       });
@@ -3751,9 +5042,10 @@
 
     workspaceAddBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (isLayerPopupOpen || isModalListPopupOpen || isExportImagePopupOpen) {
+      if (isLayerPopupOpen || isModalListPopupOpen || isGesturePopupOpen || isExportImagePopupOpen) {
         setLayerPopupState(false);
         setModalListPopupState(false);
+        setGesturePopupState(false);
         setExportImagePopupState(false);
         return;
       }
@@ -4020,27 +5312,109 @@
       backupStatusMsg.classList.remove('hidden');
     }
 
-    // 프로젝트 JSON 백업 내보내기
-    backupProjectsBtn.addEventListener('click', () => {
+    function buildBackupJsonString() {
+      const payload = {
+        app: 'Android Layout & Modal Studio',
+        exportedAt: new Date().toISOString(),
+        projects
+      };
+      return JSON.stringify(payload, null, 2);
+    }
+
+    function applyImportedJsonText(rawText) {
+      const parsed = JSON.parse(rawText);
+      const importedList = Array.isArray(parsed) ? parsed : parsed.projects;
+      if (!Array.isArray(importedList)) {
+        throw new Error('올바른 백업 파일 형식이 아닙니다.');
+      }
+      const validProjects = importedList.filter((item) => item && typeof item.name === 'string');
+      projects = validProjects;
+      saveProjects();
+      renderProjects();
+      showBackupMessage(`${validProjects.length}개의 프로젝트를 성공적으로 불러왔습니다.`);
+    }
+
+    // 텍스트 백업 영역 토글
+    toggleTextBackupBtn.addEventListener('click', () => {
+      const willOpen = textBackupBox.classList.contains('hidden');
+      textBackupBox.classList.toggle('hidden', !willOpen);
+      if (willOpen) {
+        backupJsonTextarea.value = buildBackupJsonString();
+      }
+    });
+
+    copyBackupTextBtn.addEventListener('click', async () => {
+      const jsonStr = buildBackupJsonString();
+      backupJsonTextarea.value = jsonStr;
       try {
-        const payload = {
-          app: 'Android Layout & Modal Studio',
-          exportedAt: new Date().toISOString(),
-          projects
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(jsonStr);
+        } else {
+          backupJsonTextarea.select();
+          document.execCommand('copy');
+        }
+        showBackupMessage(`총 ${projects.length}개 프로젝트 JSON이 클립보드에 복사되었습니다.`);
+      } catch (err) {
+        backupJsonTextarea.select();
+        showBackupMessage('텍스트가 선택되었습니다. 직접 복사(Ctrl+C)해 주세요.', true);
+      }
+    });
+
+    applyBackupTextBtn.addEventListener('click', () => {
+      const rawText = backupJsonTextarea.value.trim();
+      if (!rawText) {
+        showBackupMessage('복원할 JSON 데이터를 먼저 붙여넣어 주세요.', true);
+        return;
+      }
+      try {
+        applyImportedJsonText(rawText);
+      } catch (err) {
+        showBackupMessage('유효하지 않은 JSON 데이터 형식입니다.', true);
+      }
+    });
+
+    // 프로젝트 JSON 백업 내보내기 (모바일 WebView · data URI · Share API 대응)
+    backupProjectsBtn.addEventListener('click', async () => {
+      try {
+        const jsonStr = buildBackupJsonString();
         const dateStamp = new Date().toISOString().slice(0, 10);
-        a.href = url;
-        a.download = `android-layout-studio-backup-${dateStamp}.json`;
+        const filename = `android-layout-studio-backup-${dateStamp}.json`;
+
+        backupJsonTextarea.value = jsonStr;
+
+        // 1) Android WebView 등에서 blob: URL이 차단되는 경우를 대비해 data: URI 우선 다운로드 시도
+        const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonStr);
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = filename;
+        a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        showBackupMessage(`총 ${projects.length}개 프로젝트 백업 파일이 저장되었습니다.`);
+        setTimeout(() => a.remove(), 1000);
+
+        // 2) 모바일 환경에서 Web Share API 파일 공유가 가능한 경우 보조 제공
+        const isMobileUa = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+        if (isMobileUa && navigator.canShare && navigator.share) {
+          try {
+            const file = new File([jsonStr], filename, { type: 'application/json' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: 'Android Layout & Modal Studio 백업'
+              });
+              showBackupMessage(`총 ${projects.length}개 프로젝트 백업 파일이 공유/저장되었습니다.`);
+              return;
+            }
+          } catch (shareErr) {
+            if (shareErr && shareErr.name === 'AbortError') return;
+          }
+        }
+
+        showBackupMessage(`총 ${projects.length}개 프로젝트 백업 파일이 저장되었습니다. (다운로드가 차단된 앱 환경에서는 [텍스트 백업]을 이용해 주세요)`);
       } catch (err) {
-        showBackupMessage('백업 파일 생성 중 오류가 발생했습니다.', true);
+        textBackupBox.classList.remove('hidden');
+        backupJsonTextarea.value = buildBackupJsonString();
+        showBackupMessage('파일 다운로드가 제한된 환경입니다. 아래 JSON 텍스트를 복사해 백업해 주세요.', true);
       }
     });
 
@@ -4057,21 +5431,15 @@
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
-          const parsed = JSON.parse(event.target.result);
-          const importedList = Array.isArray(parsed) ? parsed : parsed.projects;
-          if (!Array.isArray(importedList)) {
-            throw new Error('올바른 백업 파일 형식이 아닙니다.');
-          }
-          const validProjects = importedList.filter((item) => item && typeof item.name === 'string');
-          projects = validProjects;
-          saveProjects();
-          renderProjects();
-          showBackupMessage(`${validProjects.length}개의 프로젝트를 성공적으로 불러왔습니다.`);
+          applyImportedJsonText(event.target.result);
         } catch (err) {
           showBackupMessage('유효하지 않은 JSON 백업 파일입니다.', true);
         }
       };
-      reader.readAsText(file);
+      reader.onerror = () => {
+        showBackupMessage('파일을 읽는 중 오류가 발생했습니다.', true);
+      };
+      reader.readAsText(file, 'UTF-8');
     });
 
     // =========================================================================
@@ -4131,6 +5499,10 @@
         }
         if (isLayerPopupOpen) {
           setLayerPopupState(false);
+          return;
+        }
+        if (isGesturePopupOpen) {
+          setGesturePopupState(false);
           return;
         }
         if (isModalListPopupOpen) {
@@ -4225,6 +5597,11 @@
           }
           if (isLayerPopupOpen) {
             setLayerPopupState(false);
+            window.history.pushState({ workspaceView: true, projectId: activeProjectId }, '', window.location.href);
+            return;
+          }
+          if (isGesturePopupOpen) {
+            setGesturePopupState(false);
             window.history.pushState({ workspaceView: true, projectId: activeProjectId }, '', window.location.href);
             return;
           }
