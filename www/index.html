@@ -85,6 +85,21 @@
 </head>
 <body class="bg-[#FEF7FF] dark:bg-[#141218] text-[#1D1B20] dark:text-[#E6E0E9] antialiased selection:bg-[#E8DEF8] dark:selection:bg-[#4A4458] overflow-hidden">
 
+  <!-- 앱 시작 스플래시 오버레이 (현재 테마 배경색 + 중앙 앱 아이콘 + 중앙 하단 버전) -->
+  <div id="appSplashScreen" class="fixed inset-0 z-[100] bg-[#FEF7FF] dark:bg-[#141218] flex flex-col items-center justify-center transition-opacity duration-500">
+    <div class="flex items-center justify-center card-animate">
+      <div class="w-24 h-24 rounded-[26px] bg-[#0F9D58] shadow-xl flex items-center justify-center overflow-hidden">
+        <svg class="w-full h-full" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="100" rx="26" fill="#0F9D58" />
+          <path d="M29 59 A21 21 0 0 1 71 59" stroke="#FFFFFF" stroke-width="9.5" stroke-linecap="butt" />
+        </svg>
+      </div>
+    </div>
+    <div class="fixed bottom-8 left-1/2 -translate-x-1/2 text-center pointer-events-none">
+      <span class="app-version-label text-[11px] font-mono font-semibold tracking-wider text-[#49454F]/80 dark:text-[#CAC4D0]/80">v1.0.0</span>
+    </div>
+  </div>
+
   <!-- 메인 프로젝트 목록 패널 캔버스 -->
   <main id="panelCanvas" class="w-screen h-screen grid-bg overflow-y-auto px-5 py-8 sm:px-10 sm:py-12 transition-colors">
     <div class="max-w-5xl mx-auto">
@@ -94,6 +109,11 @@
       </header>
 
       <section id="projectGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-24"></section>
+    </div>
+
+    <!-- 메인 화면 중앙 하단 버전 표시 -->
+    <div class="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+      <span class="app-version-label px-3 py-1 rounded-full bg-white/65 dark:bg-slate-800/65 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 text-[11px] font-mono font-medium text-[#49454F] dark:text-[#CAC4D0]">v1.0.0</span>
     </div>
   </main>
 
@@ -847,6 +867,11 @@
           <input type="file" id="restoreFileInput" accept=".zip,.json,application/zip,application/json,text/plain,*/*" class="hidden" />
           <p id="backupStatusMsg" class="hidden text-[11px] font-medium pt-0.5"></p>
         </div>
+      </div>
+
+      <!-- 설정창 하단 버전 표시 -->
+      <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
+        <span class="app-version-label text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">Android Layout &amp; Modal Studio · v1.0.0</span>
       </div>
     </div>
   </div>
@@ -5735,6 +5760,17 @@
     loadSettings();
     loadProjects();
     renderProjects();
+
+    // 앱 시작 스플래시 페이드아웃 처리
+    const appSplashScreen = document.getElementById('appSplashScreen');
+    if (appSplashScreen) {
+      setTimeout(() => {
+        appSplashScreen.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+          appSplashScreen.classList.add('hidden');
+        }, 500);
+      }, 1100);
+    }
   </script>
 </body>
 </html>
