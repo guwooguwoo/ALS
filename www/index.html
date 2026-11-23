@@ -1154,6 +1154,17 @@
     const exportAllCanvasesBtn = document.getElementById('exportAllCanvasesBtn');
     const exportAllCanvasesDesc = document.getElementById('exportAllCanvasesDesc');
     const exportImageStatusText = document.getElementById('exportImageStatusText');
+    const exportSingleFmtBadge = document.getElementById('exportSingleFmtBadge');
+    const screenshotShareSheetOverlay = document.getElementById('screenshotShareSheetOverlay');
+    const screenshotSheetTitle = document.getElementById('screenshotSheetTitle');
+    const screenshotSheetSubtitle = document.getElementById('screenshotSheetSubtitle');
+    const screenshotPreviewContainer = document.getElementById('screenshotPreviewContainer');
+    const closeScreenshotSheetBtn = document.getElementById('closeScreenshotSheetBtn');
+    const triggerSystemShareBtn = document.getElementById('triggerSystemShareBtn');
+    const triggerDirectDownloadBtn = document.getElementById('triggerDirectDownloadBtn');
+    const screenshotSheetNotice = document.getElementById('screenshotSheetNotice');
+    let selectedExportFormat = 'png';
+    let pendingExportItems = [];
     const modalOrientationSection = document.getElementById('modalOrientationSection');
     const orientHorizontalBtn = document.getElementById('orientHorizontalBtn');
     const orientVerticalBtn = document.getElementById('orientVerticalBtn');
@@ -3687,43 +3698,77 @@
       const plugins = cap && (cap.Plugins || (typeof cap.getPlugins === 'function' ? cap.getPlugins() : null));
       const FilesystemPlugin = plugins && plugins.Filesystem;
       const SharePlugin = plugins && plugins.Share;
+      const isNative = Boolean(
+        cap && (
+          (typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) ||
+          (cap.getPlatform && cap.getPlatform() !== 'web') ||
+          (FilesystemPlugin && SharePlugin)
+        )
+      );
 
-      if (cap && (cap.isNativePlatform ? cap.isNativePlatform() : Boolean(FilesystemPlugin && SharePlugin))) {
+      if (isNative) {
         try {
-          if (FilesystemPlugin && SharePlugin) {
-            const uris = [];
-            for (const item of items) {
-              const base64Data = (item.dataUrl.split(',')[1] || '').trim();
-              const writeRes = await FilesystemPlugin.writeFile({
-                path: item.filename,
+          const writeTempCacheFile = async (filename, base64Data) => {
+            if (FilesystemPlugin && typeof FilesystemPlugin.writeFile === 'function') {
+              return await FilesystemPlugin.writeFile({
+                path: filename,
                 data: base64Data,
                 directory: 'CACHE'
               });
-              if (writeRes && writeRes.uri) {
-                uris.push(writeRes.uri);
-              }
             }
+            if (cap && typeof cap.nativePromise === 'function') {
+              return await cap.nativePromise('Filesystem', 'writeFile', {
+                path: filename,
+                data: base64Data,
+                directory: 'CACHE'
+              });
+            }
+            return null;
+          };
 
-            if (uris.length > 0) {
-              if (uris.length === 1) {
-                await SharePlugin.share({
-                  title: shareTitle || items[0].filename,
-                  url: uris[0],
-                  dialogTitle: '이미지 공유 및 저장'
-                });
-              } else {
-                await SharePlugin.share({
-                  title: shareTitle || '캔버스 이미지 공유',
-                  files: uris,
-                  dialogTitle: '이미지 공유 및 저장'
-                });
-              }
-              return true;
+          const callNativeShare = async (payload) => {
+            if (SharePlugin && typeof SharePlugin.share === 'function') {
+              return await SharePlugin.share(payload);
+            }
+            if (cap && typeof cap.nativePromise === 'function') {
+              return await cap.nativePromise('Share', 'share', payload);
+            }
+            throw new Error('Share plugin unavailable');
+          };
+
+          const uris = [];
+          for (const item of items) {
+            const base64Data = (item.dataUrl.split(',')[1] || '').trim();
+            const writeRes = await writeTempCacheFile(item.filename, base64Data);
+            if (writeRes && writeRes.uri) {
+              uris.push(writeRes.uri);
             }
           }
-        } catch (capErr) {
-          if (capErr && (capErr.message === 'Share canceled' || capErr.name === 'AbortError')) {
+
+          if (uris.length > 0) {
+            if (uris.length === 1) {
+              await callNativeShare({
+                title: shareTitle || items[0].filename,
+                url: uris[0],
+                dialogTitle: '이미지 공유 및 저장'
+              });
+            } else {
+              await callNativeShare({
+                title: shareTitle || '캔버스 이미지 공유',
+                files: uris,
+                dialogTitle: '이미지 공유 및 저장'
+              });
+            }
             return true;
+          }
+        } catch (capErr) {
+          const msg = String((capErr && (capErr.message || capErr)) || '');
+          if (msg.includes('cancel') || msg.includes('Cancel') || (capErr && capErr.name === 'AbortError')) {
+            return true;
+          }
+          if (screenshotSheetNotice) {
+            screenshotSheetNotice.textContent = `네이티브 공유 오류: ${msg}`;
+            screenshotSheetNotice.classList.remove('hidden');
           }
         }
       }
