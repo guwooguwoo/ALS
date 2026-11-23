@@ -3892,35 +3892,74 @@
     function savePngToStorage(canvasEl, filename) {
       return new Promise((resolve) => {
         try {
+          if (!canvasEl || canvasEl.width === 0 || canvasEl.height === 0) {
+            resolve(false);
+            return;
+          }
+
           const dataUrl = canvasEl.toDataURL('image/png');
           const triggerDownload = (href, name) => {
-            const link = document.createElement('a');
-            link.href = href;
-            link.download = name;
-            link.rel = 'noopener';
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-            setTimeout(() => {
-              if (link.parentNode) link.parentNode.removeChild(link);
-            }, 3000);
+            try {
+              const link = document.createElement('a');
+              link.href = href;
+              link.download = name;
+              link.rel = 'noopener';
+              link.style.display = 'none';
+              document.body.appendChild(link);
+              link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+              setTimeout(() => {
+                if (link.parentNode) link.parentNode.removeChild(link);
+              }, 3000);
+              return true;
+            } catch (e) {
+              return false;
+            }
+          };
+
+          const finishWithShareOrDownload = async (blob) => {
+            const fileObj = blob ? new File([blob], filename, { type: 'image/png' }) : null;
+            if (fileObj && navigator.share) {
+              try {
+                if (!navigator.canShare || navigator.canShare({ files: [fileObj] })) {
+                  await navigator.share({
+                    files: [fileObj],
+                    title: filename
+                  });
+                  resolve(true);
+                  return;
+                }
+              } catch (shareErr) {
+                if (shareErr && shareErr.name === 'AbortError') {
+                  resolve(true);
+                  return;
+                }
+              }
+            }
+
+            if (blob) {
+              const blobUrl = URL.createObjectURL(blob);
+              const ok = triggerDownload(blobUrl, filename);
+              setTimeout(() => URL.revokeObjectURL(blobUrl), 6000);
+              if (ok) {
+                resolve(true);
+                return;
+              }
+            }
+
+            if (dataUrl && dataUrl.startsWith('data:image/png')) {
+              resolve(triggerDownload(dataUrl, filename));
+              return;
+            }
+
+            resolve(false);
           };
 
           if (typeof canvasEl.toBlob === 'function') {
             canvasEl.toBlob((blob) => {
-              if (blob) {
-                const blobUrl = URL.createObjectURL(blob);
-                triggerDownload(blobUrl, filename);
-                setTimeout(() => URL.revokeObjectURL(blobUrl), 6000);
-                resolve(true);
-                return;
-              }
-              triggerDownload(dataUrl, filename);
-              resolve(true);
+              finishWithShareOrDownload(blob);
             }, 'image/png');
           } else {
-            triggerDownload(dataUrl, filename);
-            resolve(true);
+            finishWithShareOrDownload(null);
           }
         } catch (err) {
           try {
@@ -3996,7 +4035,8 @@
 
       let sourceCanvas = null;
 
-      if (typeof html2canvas === 'function') {
+      // 오프라인 및 외부 CDN 미로딩 환경에서도 2D 캔버스로 즉시 렌더링
+      if (navigator.onLine && typeof html2canvas === 'function') {
         try {
           sourceCanvas = await html2canvas(workspaceBoard, {
             backgroundColor: bgColor,
