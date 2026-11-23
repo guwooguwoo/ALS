@@ -1941,15 +1941,14 @@
           const startY = e.clientY;
           const origX = item.x;
           const origY = item.y;
-          const topOffset = bodyBox && topBarEl
-            ? (topBarEl.classList.contains('order-2') ? 0 : bodyBox.offsetTop)
-            : 26;
+          const barHeight = topBarEl ? (topBarEl.offsetHeight + 6) : 26;
           layerEl.setPointerCapture(e.pointerId);
 
           const onPointerMove = (moveEvent) => {
             const rawX = Math.max(0, Math.round(origX + (moveEvent.clientX - startX)));
             const rawY = Math.round(origY + (moveEvent.clientY - startY));
-            const snapped = computeSnapPosition(item, rawX, rawY, topOffset);
+            const currentTopOffset = rawY < 28 ? 0 : barHeight;
+            const snapped = computeSnapPosition(item, rawX, rawY, currentTopOffset, barHeight);
             item.x = snapped.x;
             item.y = snapped.y;
             layerEl.style.left = `${item.x}px`;
@@ -1983,11 +1982,11 @@
     /**
      * 드래그 중 상단바 아래 실제 모달 본체 끝라인 기준 자석(스냅) 좌표 계산
      */
-    function computeSnapPosition(activeItem, rawX, rawY, topOffset) {
+    function computeSnapPosition(activeItem, rawX, rawY, topOffset, barHeight = 26) {
       const guides = [];
       let snappedX = rawX;
       let snappedY = rawY;
-      const threshold = 10;
+      const threshold = 12;
       const edgeMargin = 16;
 
       const template = COMPONENT_TEMPLATES[activeItem.type] || COMPONENT_TEMPLATES['card-container'];
@@ -1997,6 +1996,12 @@
 
       const boardW = workspaceBoard.clientWidth || window.innerWidth;
       const boardH = workspaceBoard.clientHeight || window.innerHeight;
+
+      const resolveItemYForBodyY = (targetBodyY) => {
+        if (targetBodyY < 28) return targetBodyY;
+        const withTopBarY = targetBodyY - barHeight;
+        return withTopBarY < 28 ? targetBodyY : withTopBarY;
+      };
 
       let bestDx = threshold + 1;
       let bestDy = threshold + 1;
@@ -2032,7 +2037,7 @@
           const diff = Math.abs(rawBodyY - cand.targetBodyY);
           if (diff < bestDy) {
             bestDy = diff;
-            snappedY = cand.targetBodyY - topOffset;
+            snappedY = resolveItemYForBodyY(cand.targetBodyY);
             guideY = cand.guide;
           }
         });
@@ -2052,7 +2057,7 @@
             const otherBodyEl = otherEl ? otherEl.querySelector('.modal-body-box') : null;
             const otherTopOffset = otherBodyEl && otherTopBarEl
               ? (otherTopBarEl.classList.contains('order-2') ? 0 : otherBodyEl.offsetTop)
-              : 26;
+              : (other.y < 28 ? 0 : 26);
             const obodyH = otherBodyEl && otherBodyEl.offsetHeight
               ? otherBodyEl.offsetHeight
               : (typeof other.height === 'number' ? other.height : otherTpl.defaultHeight);
@@ -2087,11 +2092,11 @@
               { targetBodyY: obodyY - gap - bodyH, guide: obodyY - gap }
             ];
             modalYBodyCandidates.forEach((cand) => {
-              if (cand.targetBodyY < -topOffset) return;
+              if (cand.targetBodyY < 0) return;
               const diff = Math.abs(rawBodyY - cand.targetBodyY);
               if (diff < bestDy) {
                 bestDy = diff;
-                snappedY = cand.targetBodyY - topOffset;
+                snappedY = resolveItemYForBodyY(cand.targetBodyY);
                 guideY = cand.guide;
               }
             });
@@ -2102,8 +2107,7 @@
       if (guideX !== null) guides.push({ axis: 'x', pos: guideX });
       if (guideY !== null) guides.push({ axis: 'y', pos: guideY });
 
-      const minAllowedY = guideY !== null ? Math.min(-topOffset, snappedY) : -topOffset;
-      return { x: snappedX, y: Math.max(minAllowedY, snappedY), guides };
+      return { x: snappedX, y: Math.max(0, snappedY), guides };
     }
 
     /**
