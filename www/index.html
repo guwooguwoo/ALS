@@ -1518,10 +1518,10 @@
         const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
         const filename = `android-layout-studio-backup-${dateStamp}.zip`;
 
-        // 1) Web Share API 파일 공유 우선 시도 (모바일 · 데스크톱 지원 브라우저 공통)
-        const shareFile = new File([zipBlob], filename, { type: 'application/zip' });
+        // 1) Web Share API 파일 공유 우선 시도
         if (navigator.share) {
           try {
+            const shareFile = new File([zipBlob], filename, { type: 'application/zip' });
             if (!navigator.canShare || navigator.canShare({ files: [shareFile] })) {
               await navigator.share({
                 files: [shareFile],
@@ -1536,21 +1536,21 @@
           }
         }
 
-        // 2) 공유 시트를 지원하지 않는 환경에서는 표준 ZIP 파일 다운로드로 폴백
-        const blobUrl = URL.createObjectURL(zipBlob);
+        // 2) Android WebView / 모바일 브라우저 호환 Base64 Data URI 다운로드 + Blob 보조
+        const zipBase64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
+        const dataUri = `data:application/zip;base64,${zipBase64}`;
         const a = document.createElement('a');
-        a.href = blobUrl;
+        a.href = dataUri;
         a.download = filename;
+        a.target = '_blank';
         a.rel = 'noopener';
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
-        setTimeout(() => {
-          a.remove();
-          URL.revokeObjectURL(blobUrl);
-        }, 5000);
+        setTimeout(() => a.remove(), 2000);
 
-        showBackupMessage(`공유 기능을 지원하지 않는 환경이어서 ZIP 파일(${filename})로 직접 저장했습니다.`);
+        textBackupBox.classList.remove('hidden');
+        showBackupMessage(`ZIP 파일(${filename}) 다운로드를 요청했습니다. 앱 내 미리보기에서 파일이 보이지 않으면 아래 [JSON 복사]로 백업하세요.`);
       } catch (err) {
         textBackupBox.classList.remove('hidden');
         backupJsonTextarea.value = buildBackupJsonString();
@@ -5494,81 +5494,6 @@
       } catch (err) {
         showBackupMessage('JSON 형식이 올바르지 않습니다. 백업 데이터를 다시 확인해 주세요.', true);
       }
-    });
-
-    // 프로젝트 JSON 백업 내보내기 (Blob URL · Web Share API · 텍스트 백업 폴백 대응)
-    backupProjectsBtn.addEventListener('click', async () => {
-      try {
-        const jsonStr = buildBackupJsonString();
-        const dateStamp = new Date().toISOString().slice(0, 10);
-        const filename = `android-layout-studio-backup-${dateStamp}.json`;
-
-        backupJsonTextarea.value = jsonStr;
-
-        // 1) 모바일 환경에서 Web Share API 파일 공유 우선 시도
-        const isMobileUa = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-        if (isMobileUa && navigator.canShare && navigator.share) {
-          try {
-            const file = new File([jsonStr], filename, { type: 'application/json' });
-            if (navigator.canShare({ files: [file] })) {
-              await navigator.share({
-                files: [file],
-                title: 'Android Layout & Modal Studio 백업'
-              });
-              showBackupMessage(`총 ${projects.length}개 프로젝트 백업 파일이 공유/저장되었습니다.`);
-              return;
-            }
-          } catch (shareErr) {
-            if (shareErr && shareErr.name === 'AbortError') return;
-          }
-        }
-
-        // 2) Blob URL 기반 표준 파일 다운로드
-        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        a.rel = 'noopener';
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          a.remove();
-          URL.revokeObjectURL(blobUrl);
-        }, 5000);
-
-        textBackupBox.classList.remove('hidden');
-        showBackupMessage(`총 ${projects.length}개 프로젝트 백업 저장을 요청했습니다. 다운로드가 막힌 환경에서는 아래 [JSON 복사]를 이용해 주세요.`);
-      } catch (err) {
-        textBackupBox.classList.remove('hidden');
-        backupJsonTextarea.value = buildBackupJsonString();
-        showBackupMessage('파일 다운로드가 제한된 환경입니다. 아래 JSON 텍스트를 복사해 백업해 주세요.', true);
-      }
-    });
-
-    // 프로젝트 JSON 백업 불러오기
-    restoreProjectsBtn.addEventListener('click', () => {
-      restoreFileInput.value = '';
-      restoreFileInput.click();
-    });
-
-    restoreFileInput.addEventListener('change', (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          applyImportedJsonText(event.target.result);
-        } catch (err) {
-          showBackupMessage('유효하지 않은 JSON 백업 파일입니다.', true);
-        }
-      };
-      reader.onerror = () => {
-        showBackupMessage('파일을 읽는 중 오류가 발생했습니다.', true);
-      };
-      reader.readAsText(file, 'UTF-8');
     });
 
     // =========================================================================
