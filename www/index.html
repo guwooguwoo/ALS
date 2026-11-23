@@ -436,16 +436,27 @@
 
     <!-- 모달 중앙 텍스트 편집 팝업 -->
     <div id="editModalTextOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-[2px] p-4">
-      <div class="w-full max-w-xs bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-5 select-auto card-animate">
-        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-1">모달 중앙 텍스트 설정</h3>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3">모달 가운데에 띄울 문구를 입력하세요.</p>
-        <input
-          type="text"
-          id="modalCenterTextInput"
-          placeholder="예: 로그인이 필요합니다"
-          maxlength="80"
-          class="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400 mb-4"
-        />
+      <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-5 select-auto card-animate">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-1">모달 텍스트 · 아이콘 편집</h3>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3">모달 이름, 내부 구성 텍스트와 아이콘을 자유롭게 변경하세요.</p>
+
+        <div class="space-y-3 max-h-[58vh] overflow-y-auto pr-0.5 mb-4">
+          <div>
+            <label for="modalLabelInput" class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">모달 / 레이어 이름</label>
+            <input
+              type="text"
+              id="modalLabelInput"
+              placeholder="레이어 이름 입력"
+              maxlength="60"
+              class="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400"
+            />
+          </div>
+
+          <div id="modalDynamicTextsContainer" class="space-y-2.5"></div>
+
+          <div id="modalDynamicIconsContainer" class="space-y-2"></div>
+        </div>
+
         <div class="flex justify-end gap-2">
           <button
             type="button"
@@ -806,6 +817,22 @@
       accentColor: 'indigo'
     };
 
+    function updateHistoryButtons() {
+      workspaceUndoBtn.disabled = undoStack.length === 0;
+      workspaceRedoBtn.disabled = redoStack.length === 0;
+    }
+
+    function pushUndoSnapshot(beforeSnapshot) {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      if (!currentProject) return;
+      const afterSnapshot = JSON.stringify(currentProject.modals || []);
+      if (beforeSnapshot === afterSnapshot) return;
+      undoStack.push(beforeSnapshot);
+      if (undoStack.length > 50) undoStack.shift();
+      redoStack = [];
+      updateHistoryButtons();
+    }
+
     const ACCENT_PALETTES = {
       indigo: {
         name: '인디고',
@@ -897,7 +924,9 @@
     const modalListPopupOverlay = document.getElementById('modalListPopupOverlay');
     const closeModalListPopupBtn = document.getElementById('closeModalListPopupBtn');
     const editModalTextOverlay = document.getElementById('editModalTextOverlay');
-    const modalCenterTextInput = document.getElementById('modalCenterTextInput');
+    const modalLabelInput = document.getElementById('modalLabelInput');
+    const modalDynamicTextsContainer = document.getElementById('modalDynamicTextsContainer');
+    const modalDynamicIconsContainer = document.getElementById('modalDynamicIconsContainer');
     const cancelModalTextBtn = document.getElementById('cancelModalTextBtn');
     const saveModalTextBtn = document.getElementById('saveModalTextBtn');
     const projectGrid = document.getElementById('projectGrid');
@@ -925,1017 +954,104 @@
     const confirmExitBtn = document.getElementById('confirmExitBtn');
 
     /**
-     * 실행취소 / 다시실행 버튼 활성 상태 갱신 및 스냅샷 기록
+     * 모달 내 모든 구성 텍스트와 아이콘 커스텀 오버라이드 적용 헬퍼
      */
-    function updateHistoryButtons() {
-      workspaceUndoBtn.disabled = undoStack.length === 0;
-      workspaceRedoBtn.disabled = redoStack.length === 0;
-    }
+    const ICON_PRESET_CHOICES = [
+      '★', '♥', '✓', '✕', '⚠', '🛡️', '🔔', '⚙', '🔍', '🏠', '👤', '📅', '💬', '🔗', '✎', '❐', '▣', '☰', '⋮', '⋯', '∅', '⊞', '✉', '☁', '🖼', '←', '→', '+', '−'
+    ];
 
-    function pushUndoSnapshot(snapshotJson) {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject) return;
-      const before = typeof snapshotJson === 'string'
-        ? snapshotJson
-        : JSON.stringify(currentProject.modals || []);
-      const after = JSON.stringify(currentProject.modals || []);
-      if (before === after) return;
+    function collectEditableNodesFromTemplate(item) {
+      const template = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
+      const displayText = typeof item.text === 'string' ? item.text : template.defaultText;
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = template.renderInner(displayText);
 
-      undoStack.push(before);
-      if (undoStack.length > 50) undoStack.shift();
-      redoStack = [];
-      updateHistoryButtons();
-    }
+      const textSlots = [];
+      const iconSlots = [];
+      const iconRegex = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}★☆♥♡✓✕✖⚠🛡️🔔⚙🔍🏠👤📅💬🔗✎❐▣☰⋮⋯∅⊞✉☁🖼←→↑↓‹›+−•●○◉]+$/u;
 
-    function undoWorkspaceAction() {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject || undoStack.length === 0) return;
-
-      const currentSnapshot = JSON.stringify(currentProject.modals || []);
-      const prevSnapshot = undoStack.pop();
-      redoStack.push(currentSnapshot);
-
-      currentProject.modals = JSON.parse(prevSnapshot);
-      if (Array.isArray(currentProject.canvases) && currentProject.canvases[activeCanvasIndex]) {
-        currentProject.canvases[activeCanvasIndex].modals = currentProject.modals;
+      const walker = document.createTreeWalker(wrapper, NodeFilter.SHOW_TEXT, null);
+      let node;
+      while ((node = walker.nextNode())) {
+        const trimmed = node.nodeValue.trim();
+        if (!trimmed) continue;
+        const parentEl = node.parentElement;
+        if (parentEl && (parentEl.classList.contains('m3-check') && parentEl.classList.contains('hidden'))) continue;
+        if (iconRegex.test(trimmed) && trimmed.length <= 4) {
+          iconSlots.push({ kind: 'text', defaultVal: trimmed });
+        } else {
+          textSlots.push({ kind: 'text', defaultVal: trimmed });
+        }
       }
-      saveProjects();
-      renderWorkspaceLayers();
-      if (isLayerPopupOpen) renderLayerPopupList();
-      renderProjects();
-      updateHistoryButtons();
+
+      wrapper.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((inp) => {
+        const ph = inp.getAttribute('placeholder');
+        if (ph) textSlots.push({ kind: 'placeholder', defaultVal: ph });
+      });
+
+      wrapper.querySelectorAll('input[value]').forEach((inp) => {
+        const val = inp.getAttribute('value');
+        if (val !== null) textSlots.push({ kind: 'value', defaultVal: val });
+      });
+
+      return { textSlots, iconSlots };
     }
 
-    function redoWorkspaceAction() {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject || redoStack.length === 0) return;
+    function applyCustomTextsAndIconsToElement(containerEl, item) {
+      if (!item) return;
+      const customTexts = Array.isArray(item.customTexts) ? item.customTexts : [];
+      const customIcons = Array.isArray(item.customIcons) ? item.customIcons : [];
+      if (customTexts.length === 0 && customIcons.length === 0) return;
 
-      const currentSnapshot = JSON.stringify(currentProject.modals || []);
-      const nextSnapshot = redoStack.pop();
-      undoStack.push(currentSnapshot);
+      const iconRegex = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}★☆♥♡✓✕✖⚠🛡️🔔⚙🔍🏠👤📅💬🔗✎❐▣☰⋮⋯∅⊞✉☁🖼←→↑↓‹›+−•●○◉]+$/u;
+      let textIdx = 0;
+      let iconIdx = 0;
 
-      currentProject.modals = JSON.parse(nextSnapshot);
-      if (Array.isArray(currentProject.canvases) && currentProject.canvases[activeCanvasIndex]) {
-        currentProject.canvases[activeCanvasIndex].modals = currentProject.modals;
+      const walker = document.createTreeWalker(containerEl, NodeFilter.SHOW_TEXT, null);
+      let node;
+      while ((node = walker.nextNode())) {
+        const trimmed = node.nodeValue.trim();
+        if (!trimmed) continue;
+        const parentEl = node.parentElement;
+        if (parentEl && parentEl.classList.contains('m3-check') && parentEl.classList.contains('hidden')) continue;
+
+        if (iconRegex.test(trimmed) && trimmed.length <= 4) {
+          if (typeof customIcons[iconIdx] === 'string' && customIcons[iconIdx] !== '') {
+            node.nodeValue = node.nodeValue.replace(trimmed, customIcons[iconIdx]);
+          }
+          iconIdx++;
+        } else {
+          if (typeof customTexts[textIdx] === 'string') {
+            node.nodeValue = node.nodeValue.replace(trimmed, customTexts[textIdx]);
+          }
+          textIdx++;
+        }
       }
-      saveProjects();
-      renderWorkspaceLayers();
-      if (isLayerPopupOpen) renderLayerPopupList();
-      renderProjects();
-      updateHistoryButtons();
+
+      containerEl.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((inp) => {
+        const ph = inp.getAttribute('placeholder');
+        if (ph) {
+          if (typeof customTexts[textIdx] === 'string') {
+            inp.setAttribute('placeholder', customTexts[textIdx]);
+          }
+          textIdx++;
+        }
+      });
+
+      containerEl.querySelectorAll('input[value]').forEach((inp) => {
+        const val = inp.getAttribute('value');
+        if (val !== null) {
+          if (typeof customTexts[textIdx] === 'string') {
+            inp.setAttribute('value', customTexts[textIdx]);
+            inp.value = customTexts[textIdx];
+          }
+          textIdx++;
+        }
+      });
     }
-
-    workspaceUndoBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      undoWorkspaceAction();
-    });
-
-    workspaceRedoBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      redoWorkspaceAction();
-    });
 
     /**
-     * 구성요소 타입별 기본 템플릿 정의 및 렌더링 (UI 숨김 모드 단독 인터랙션 지원)
-     */
-    const COMPONENT_TEMPLATES = {
-      'alert-dialog': {
-        label: '기본 AlertDialog',
-        defaultText: '변경사항을 저장할까요?',
-        defaultX: 80,
-        defaultY: 110,
-        defaultWidth: 288,
-        defaultHeight: 150,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <div class="flex-1 flex items-center justify-center text-center py-2 overflow-hidden">
-              <p class="modal-status-text text-sm font-semibold text-[#1D1B20] dark:text-[#E6E0E9] leading-snug break-words">${escapeHTML(text)}</p>
-            </div>
-            <div class="flex justify-end gap-2 text-xs font-semibold pt-2 border-t border-[#CAC4D0]/50 dark:border-[#49454F]/60 shrink-0">
-              <button type="button" data-interactive="true" data-action="cancel" class="px-3 py-1.5 rounded-full text-[#6750A4] dark:text-[#D0BCFF] hover:bg-[#6750A4]/10 dark:hover:bg-[#D0BCFF]/10 transition cursor-pointer">취소</button>
-              <button type="button" data-interactive="true" data-action="confirm" class="px-3.5 py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] active:scale-95 transition cursor-pointer">확인</button>
-            </div>
-          </div>`
-      },
-      'center-text-modal': {
-        label: '중앙 텍스트 모달',
-        defaultText: '가운데 표시할 모달 텍스트',
-        defaultX: 95,
-        defaultY: 130,
-        defaultWidth: 288,
-        defaultHeight: 156,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-6 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex items-center justify-center text-center overflow-hidden">
-            <p class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9] leading-relaxed break-words">${escapeHTML(text)}</p>
-          </div>`
-      },
-      'bottom-sheet': {
-        label: 'ModalBottomSheet',
-        defaultText: '바텀시트 안내 메시지',
-        defaultX: 110,
-        defaultY: 150,
-        defaultWidth: 320,
-        defaultHeight: 170,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-t-[28px] rounded-b-2xl bg-[#FEF7FF] dark:bg-[#141218] p-4 pt-3 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col overflow-hidden">
-            <div class="w-9 h-1 rounded-full bg-[#79747E]/50 dark:bg-[#938F99]/50 mx-auto mb-3 shrink-0"></div>
-            <div class="flex-1 flex items-center justify-center text-center px-3 py-3 overflow-hidden">
-              <p class="text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9] leading-relaxed break-words">${escapeHTML(text)}</p>
-            </div>
-          </div>`
-      },
-      'fullscreen-dialog': {
-        label: 'FullScreenDialog',
-        defaultText: '전체 화면 모달 텍스트',
-        defaultX: 70,
-        defaultY: 95,
-        defaultWidth: 320,
-        defaultHeight: 384,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-4 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col overflow-hidden">
-            <div class="flex items-center justify-between pb-2 border-b border-[#CAC4D0]/50 dark:border-[#49454F]/60 text-xs shrink-0">
-              <button type="button" data-interactive="true" data-action="close-msg" class="text-[#49454F] dark:text-[#CAC4D0] px-2 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">✕ 닫기</button>
-              <button type="button" data-interactive="true" data-action="save-msg" class="font-semibold text-[#6750A4] dark:text-[#D0BCFF] px-2 py-1 rounded-lg hover:bg-[#6750A4]/10 cursor-pointer">저장</button>
-            </div>
-            <div class="flex-1 flex items-center justify-center text-center px-4 overflow-hidden">
-              <p class="modal-status-text text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9] leading-relaxed break-words">${escapeHTML(text)}</p>
-            </div>
-          </div>`
-      },
-      'loading-modal': {
-        label: '로딩 / 대기 모달',
-        defaultText: '잠시만 기다려 주세요...',
-        defaultX: 120,
-        defaultY: 165,
-        defaultWidth: 256,
-        defaultHeight: 136,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col items-center justify-center text-center gap-3 overflow-hidden">
-            <div class="w-7 h-7 rounded-full border-2 border-[#6750A4] dark:border-[#D0BCFF] border-t-transparent animate-spin shrink-0"></div>
-            <p class="text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9] break-words">${escapeHTML(text)}</p>
-          </div>`
-      },
-      'warning-modal': {
-        label: '경고 / 삭제 확인 모달',
-        defaultText: '정말로 삭제하시겠습니까?',
-        defaultX: 100,
-        defaultY: 145,
-        defaultWidth: 288,
-        defaultHeight: 152,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#B3261E]/35 dark:border-[#F2B8B5]/35 flex flex-col justify-between overflow-hidden">
-            <div class="flex-1 flex flex-col items-center justify-center text-center gap-1.5 py-2 overflow-hidden">
-              <span class="text-[#B3261E] dark:text-[#F2B8B5] text-base font-bold shrink-0">⚠</span>
-              <p class="modal-status-text text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9] break-words">${escapeHTML(text)}</p>
-            </div>
-            <div class="flex justify-end gap-2 text-xs font-semibold pt-2 shrink-0">
-              <button type="button" data-interactive="true" data-action="cancel" class="px-3 py-1 rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">취소</button>
-              <button type="button" data-interactive="true" data-action="delete-confirm" class="px-3.5 py-1 rounded-full bg-[#B3261E] dark:bg-[#F2B8B5] text-white dark:text-[#601410] active:scale-95 transition cursor-pointer">삭제</button>
-            </div>
-          </div>`
-      },
-      'selection-modal': {
-        label: '단일 / 다중 선택 모달',
-        defaultText: '항목을 선택해 주세요',
-        defaultX: 115,
-        defaultY: 155,
-        defaultWidth: 288,
-        defaultHeight: 164,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <p class="text-xs font-bold text-center text-[#1D1B20] dark:text-[#E6E0E9] mb-2 break-words">${escapeHTML(text)}</p>
-            <div class="space-y-1.5 text-xs">
-              <button type="button" data-interactive="true" data-radio-opt="A" class="radio-opt-btn w-full text-left px-3 py-2 rounded-xl bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8] font-medium transition cursor-pointer">◉ 선택 옵션 A</button>
-              <button type="button" data-interactive="true" data-radio-opt="B" class="radio-opt-btn w-full text-left px-3 py-2 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#49454F] dark:text-[#CAC4D0] transition cursor-pointer">○ 선택 옵션 B</button>
-            </div>
-          </div>`
-      },
-      'snackbar': {
-        label: 'Snackbar',
-        defaultText: '작업이 완료되었습니다.',
-        defaultX: 140,
-        defaultY: 200,
-        defaultWidth: 288,
-        defaultHeight: 52,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-xl bg-[#FEF7FF] dark:bg-[#141218] text-[#1D1B20] dark:text-[#E6E0E9] border border-[#CAC4D0]/80 dark:border-[#49454F]/90 px-4 py-2 shadow-lg flex items-center justify-between gap-2 text-xs font-medium overflow-hidden">
-            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
-            <button type="button" data-interactive="true" data-action="undo-snack" class="text-[#6750A4] dark:text-[#D0BCFF] font-bold shrink-0 cursor-pointer">실행취소</button>
-          </div>`
-      },
-      'device-frame': {
-        label: 'Android Screen (360×640)',
-        defaultText: 'Android Screen Layer (360dp)',
-        defaultX: 60,
-        defaultY: 90,
-        defaultWidth: 320,
-        defaultHeight: 540,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[2.2rem] bg-[#FEF7FF] dark:bg-[#141218] border-[6px] border-[#1D1B20] dark:border-[#49454F] shadow-2xl flex flex-col justify-between p-4 overflow-hidden">
-            <div class="w-16 h-1.5 rounded-full bg-[#79747E]/40 mx-auto shrink-0"></div>
-            <div class="text-center text-xs font-medium text-[#49454F] dark:text-[#CAC4D0] px-4 break-words">${escapeHTML(text)}</div>
-            <div class="w-24 h-1 rounded-full bg-[#79747E]/40 mx-auto shrink-0"></div>
-          </div>`
-      },
-      'input-dialog': {
-        label: 'OutlinedTextField 모달',
-        defaultText: '새 항목 이름 입력',
-        defaultX: 120,
-        defaultY: 160,
-        defaultWidth: 288,
-        defaultHeight: 168,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <p class="modal-status-text text-xs font-bold text-center text-[#1D1B20] dark:text-[#E6E0E9] mb-2 break-words">${escapeHTML(text)}</p>
-            <input type="text" data-interactive="true" placeholder="여기에 직접 입력..." class="modal-inline-input w-full px-3 py-2 rounded-xl bg-transparent border border-[#79747E] dark:border-[#938F99] focus:border-[#6750A4] dark:focus:border-[#D0BCFF] text-xs text-[#1D1B20] dark:text-[#E6E0E9] outline-none mb-2" />
-            <div class="flex justify-end gap-2 text-xs font-semibold shrink-0">
-              <button type="button" data-interactive="true" data-action="clear-input" class="px-3 py-1 text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">지우기</button>
-              <button type="button" data-interactive="true" data-action="submit-input" class="px-3.5 py-1 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] cursor-pointer">확인</button>
-            </div>
-          </div>`
-      },
-      'text-box': {
-        label: '텍스트 박스 (TextBox)',
-        defaultText: '텍스트를 입력하세요',
-        defaultX: 125,
-        defaultY: 170,
-        defaultWidth: 260,
-        defaultHeight: 54,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-xl bg-[#FEF7FF] dark:bg-[#141218] px-3.5 py-2 shadow-md border-2 border-[#79747E]/60 dark:border-[#938F99]/60 flex items-center justify-between gap-2 overflow-hidden">
-            <input type="text" data-interactive="true" value="${escapeHTML(text)}" class="w-full bg-transparent text-xs font-medium text-[#1D1B20] dark:text-[#E6E0E9] text-center outline-none" />
-          </div>`
-      },
-      'multiline-textbox': {
-        label: '멀티라인 텍스트 박스',
-        defaultText: '상세 내용을 입력하는 텍스트 박스 영역입니다.',
-        defaultX: 125,
-        defaultY: 170,
-        defaultWidth: 280,
-        defaultHeight: 112,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] p-3.5 shadow-md border border-[#79747E]/60 dark:border-[#938F99]/60 flex flex-col justify-between overflow-hidden">
-            <textarea data-interactive="true" class="w-full flex-1 bg-transparent text-xs text-[#1D1B20] dark:text-[#E6E0E9] leading-relaxed resize-none outline-none">${escapeHTML(text)}</textarea>
-            <div class="text-[10px] text-right text-[#49454F] dark:text-[#CAC4D0] shrink-0">Material TextField</div>
-          </div>`
-      },
-      'dropdown-menu': {
-        label: '드롭다운 메뉴 (Spinner)',
-        defaultText: '옵션 선택',
-        defaultX: 130,
-        defaultY: 165,
-        defaultWidth: 240,
-        defaultHeight: 44,
-        renderInner: (text) => `
-          <div class="relative w-full h-full overflow-visible">
-            <button type="button" data-interactive="true" data-action="toggle-dropdown" class="w-full h-full px-3.5 rounded-xl bg-[#FEF7FF] dark:bg-[#141218] shadow-md border border-[#79747E] dark:border-[#938F99] flex items-center justify-between text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">
-              <span class="dropdown-selected-label truncate flex-1 text-left">${escapeHTML(text)}</span>
-              <span class="dropdown-arrow text-[10px] text-[#6750A4] dark:text-[#D0BCFF] ml-1.5">▼</span>
-            </button>
-            <div class="dropdown-list-panel hidden absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] shadow-2xl border border-[#CAC4D0] dark:border-[#49454F] p-1.5 space-y-1 text-xs text-[#1D1B20] dark:text-[#E6E0E9]">
-              <button type="button" data-interactive="true" data-dropdown-choice="메뉴 항목 1" class="w-full text-left px-3 py-2 rounded-xl hover:bg-[#E8DEF8] dark:hover:bg-[#4A4458] font-medium truncate cursor-pointer">메뉴 항목 1</button>
-              <button type="button" data-interactive="true" data-dropdown-choice="메뉴 항목 2" class="w-full text-left px-3 py-2 rounded-xl hover:bg-[#E8DEF8] dark:hover:bg-[#4A4458] truncate cursor-pointer">메뉴 항목 2</button>
-              <button type="button" data-interactive="true" data-dropdown-choice="메뉴 항목 3" class="w-full text-left px-3 py-2 rounded-xl hover:bg-[#E8DEF8] dark:hover:bg-[#4A4458] truncate cursor-pointer">메뉴 항목 3</button>
-            </div>
-          </div>`
-      },
-      'dropdown-modal': {
-        label: '드롭다운 폼 모달',
-        defaultText: '카테고리를 선택하세요',
-        defaultX: 115,
-        defaultY: 155,
-        defaultWidth: 288,
-        defaultHeight: 176,
-        renderInner: (text) => `
-          <div class="relative w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between overflow-visible">
-            <p class="modal-status-text text-xs font-bold text-center text-[#1D1B20] dark:text-[#E6E0E9] break-words">${escapeHTML(text)}</p>
-            <div class="relative">
-              <button type="button" data-interactive="true" data-action="toggle-m3-select" class="w-full px-3.5 py-2.5 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E] dark:border-[#938F99] flex items-center justify-between text-xs font-medium text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">
-                <span class="m3-select-value truncate">기본 선택 항목</span>
-                <span class="m3-select-arrow text-[10px] text-[#6750A4] dark:text-[#D0BCFF] ml-2">▼</span>
-              </button>
-              <div class="m3-select-menu hidden absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] shadow-2xl border border-[#CAC4D0] dark:border-[#49454F] p-1.5 space-y-1 text-xs">
-                <button type="button" data-interactive="true" data-m3-option="기본 선택 항목" class="m3-opt-item w-full flex items-center justify-between px-3 py-2 rounded-xl bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8] font-semibold cursor-pointer">
-                  <span>기본 선택 항목</span>
-                  <span class="m3-check">✓</span>
-                </button>
-                <button type="button" data-interactive="true" data-m3-option="카테고리 옵션 A" class="m3-opt-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-[#1D1B20] dark:text-[#E6E0E9] hover:bg-[#E8DEF8]/60 dark:hover:bg-[#4A4458]/60 cursor-pointer">
-                  <span>카테고리 옵션 A</span>
-                  <span class="m3-check hidden">✓</span>
-                </button>
-                <button type="button" data-interactive="true" data-m3-option="카테고리 옵션 B" class="m3-opt-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-[#1D1B20] dark:text-[#E6E0E9] hover:bg-[#E8DEF8]/60 dark:hover:bg-[#4A4458]/60 cursor-pointer">
-                  <span>카테고리 옵션 B</span>
-                  <span class="m3-check hidden">✓</span>
-                </button>
-              </div>
-            </div>
-            <div class="flex justify-end gap-2 text-xs font-semibold shrink-0">
-              <button type="button" data-interactive="true" data-action="cancel" class="px-3 py-1 text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">취소</button>
-              <button type="button" data-interactive="true" data-action="confirm" class="px-3.5 py-1 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] cursor-pointer">적용</button>
-            </div>
-          </div>`
-      },
-      'time-date-modal': {
-        label: '날짜 / 시간 선택 모달',
-        defaultText: '예약 날짜 선택',
-        defaultX: 110,
-        defaultY: 145,
-        defaultWidth: 288,
-        defaultHeight: 184,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <p class="modal-status-text text-xs font-bold text-center text-[#1D1B20] dark:text-[#E6E0E9] break-words">${escapeHTML(text)}</p>
-            <div class="grid grid-cols-4 gap-1.5 text-center text-xs">
-              <button type="button" data-interactive="true" data-date-chip="오늘" class="date-chip-btn py-2 rounded-xl bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] font-semibold cursor-pointer">오늘</button>
-              <button type="button" data-interactive="true" data-date-chip="내일" class="date-chip-btn py-2 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">내일</button>
-              <button type="button" data-interactive="true" data-date-chip="주말" class="date-chip-btn py-2 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">주말</button>
-              <button type="button" data-interactive="true" data-date-chip="다음주" class="date-chip-btn py-2 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">다음주</button>
-            </div>
-            <div class="flex justify-end gap-2 text-xs font-semibold shrink-0">
-              <button type="button" data-interactive="true" data-action="confirm" class="px-3.5 py-1 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] cursor-pointer">선택 완료</button>
-            </div>
-          </div>`
-      },
-      'share-sheet-modal': {
-        label: '공유 / 액션 그리드 모달',
-        defaultText: '공유 대상 선택',
-        defaultX: 105,
-        defaultY: 150,
-        defaultWidth: 300,
-        defaultHeight: 176,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <p class="modal-status-text text-xs font-bold text-center text-[#1D1B20] dark:text-[#E6E0E9] break-words">${escapeHTML(text)}</p>
-            <div class="grid grid-cols-3 gap-2 text-center text-[11px]">
-              <button type="button" data-interactive="true" data-share-app="메시지" class="share-app-btn p-2 rounded-2xl bg-[#E8DEF8]/70 dark:bg-[#4A4458]/70 text-[#1D1B20] dark:text-[#E6E0E9] font-medium cursor-pointer">💬 메시지</button>
-              <button type="button" data-interactive="true" data-share-app="링크 복사" class="share-app-btn p-2 rounded-2xl bg-[#E8DEF8]/70 dark:bg-[#4A4458]/70 text-[#1D1B20] dark:text-[#E6E0E9] font-medium cursor-pointer">🔗 링크 복사</button>
-              <button type="button" data-interactive="true" data-share-app="더보기" class="share-app-btn p-2 rounded-2xl bg-[#E8DEF8]/70 dark:bg-[#4A4458]/70 text-[#1D1B20] dark:text-[#E6E0E9] font-medium cursor-pointer">⋯ 더보기</button>
-            </div>
-          </div>`
-      },
-      'permission-modal': {
-        label: '권한 허용 요청 모달',
-        defaultText: '위치 및 알림 권한을 허용할까요?',
-        defaultX: 110,
-        defaultY: 150,
-        defaultWidth: 288,
-        defaultHeight: 168,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <div class="flex-1 flex flex-col items-center justify-center text-center gap-1.5 overflow-hidden">
-              <span class="text-sm text-[#6750A4] dark:text-[#D0BCFF]">🛡️</span>
-              <p class="modal-status-text text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9] break-words">${escapeHTML(text)}</p>
-            </div>
-            <div class="flex flex-col gap-1.5 text-xs font-semibold shrink-0">
-              <button type="button" data-interactive="true" data-action="allow-perm" class="w-full py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] cursor-pointer">앱 사용 중에만 허용</button>
-              <button type="button" data-interactive="true" data-action="deny-perm" class="w-full py-1 rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">허용 안 함</button>
-            </div>
-          </div>`
-      },
-      'profile-account-modal': {
-        label: '계정 전환 / 프로필 모달',
-        defaultText: '사용할 계정을 선택하세요',
-        defaultX: 110,
-        defaultY: 145,
-        defaultWidth: 296,
-        defaultHeight: 204,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <p class="modal-status-text text-xs font-bold text-center text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</p>
-            <div class="space-y-1.5 text-xs">
-              <button type="button" data-interactive="true" data-account-name="김민수 (기본 계정)" class="account-row-btn w-full flex items-center justify-between px-3 py-2 rounded-2xl bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8] font-semibold cursor-pointer">
-                <span class="truncate">● 김민수 · minsu@android.dev</span>
-                <span class="account-badge text-[10px]">사용중</span>
-              </button>
-              <button type="button" data-interactive="true" data-account-name="업무용 워크스페이스" class="account-row-btn w-full flex items-center justify-between px-3 py-2 rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">
-                <span class="truncate">○ 업무용 · work@studio.kr</span>
-                <span class="account-badge text-[10px] hidden">사용중</span>
-              </button>
-            </div>
-            <div class="flex justify-end text-xs font-semibold">
-              <button type="button" data-interactive="true" data-action="confirm" class="px-3.5 py-1 rounded-full text-[#6750A4] dark:text-[#D0BCFF] cursor-pointer">+ 다른 계정 추가</button>
-            </div>
-          </div>`
-      },
-      'rating-review-modal': {
-        label: '별점 평가 / 피드백 모달',
-        defaultText: '앱 사용 경험은 어떠셨나요?',
-        defaultX: 115,
-        defaultY: 150,
-        defaultWidth: 288,
-        defaultHeight: 176,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between text-center overflow-hidden">
-            <p class="modal-status-text text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</p>
-            <div class="flex items-center justify-center gap-2 py-1">
-              <button type="button" data-interactive="true" data-star="1" class="star-rate-btn text-xl text-[#6750A4] dark:text-[#D0BCFF] cursor-pointer">★</button>
-              <button type="button" data-interactive="true" data-star="2" class="star-rate-btn text-xl text-[#6750A4] dark:text-[#D0BCFF] cursor-pointer">★</button>
-              <button type="button" data-interactive="true" data-star="3" class="star-rate-btn text-xl text-[#6750A4] dark:text-[#D0BCFF] cursor-pointer">★</button>
-              <button type="button" data-interactive="true" data-star="4" class="star-rate-btn text-xl text-[#6750A4] dark:text-[#D0BCFF] cursor-pointer">★</button>
-              <button type="button" data-interactive="true" data-star="5" class="star-rate-btn text-xl text-[#79747E]/50 dark:text-[#938F99]/50 cursor-pointer">★</button>
-            </div>
-            <div class="flex justify-end gap-2 text-xs font-semibold">
-              <button type="button" data-interactive="true" data-action="cancel" class="px-3 py-1 text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">나중에</button>
-              <button type="button" data-interactive="true" data-action="confirm" class="px-3.5 py-1 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] cursor-pointer">평가 제출</button>
-            </div>
-          </div>`
-      },
-      'onboarding-coach-modal': {
-        label: '온보딩 / 기능 안내 툴팁 모달',
-        defaultText: '스와이프하여 다음 카드를 확인하세요',
-        defaultX: 110,
-        defaultY: 145,
-        defaultWidth: 288,
-        defaultHeight: 168,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#6750A4]/40 dark:border-[#D0BCFF]/40 flex flex-col justify-between overflow-hidden">
-            <div class="flex items-center justify-between text-[11px] font-bold text-[#6750A4] dark:text-[#D0BCFF]">
-              <span>GUIDE TIP</span>
-              <span class="step-indicator-text">1 / 3</span>
-            </div>
-            <p class="modal-status-text text-xs font-semibold text-center text-[#1D1B20] dark:text-[#E6E0E9] leading-relaxed break-words">${escapeHTML(text)}</p>
-            <div class="flex items-center justify-between text-xs font-semibold">
-              <button type="button" data-interactive="true" data-action="close-msg" class="text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">건너뛰기</button>
-              <button type="button" data-interactive="true" data-action="next-guide-step" data-step="1" class="px-3.5 py-1 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] cursor-pointer">다음 →</button>
-            </div>
-          </div>`
-      },
-      'filter-sort-sheet': {
-        label: '필터 / 정렬 바텀시트',
-        defaultText: '검색 조건 필터',
-        defaultX: 105,
-        defaultY: 145,
-        defaultWidth: 312,
-        defaultHeight: 184,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-t-[28px] rounded-b-2xl bg-[#FEF7FF] dark:bg-[#141218] p-4 pt-3 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <div class="w-9 h-1 rounded-full bg-[#79747E]/50 mx-auto shrink-0"></div>
-            <p class="modal-status-text text-xs font-bold text-center text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</p>
-            <div class="flex flex-wrap justify-center gap-1.5 text-[11px]">
-              <button type="button" data-interactive="true" data-filter-chip="true" class="filter-chip-btn px-3 py-1 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8] font-semibold cursor-pointer">✓ 최신순</button>
-              <button type="button" data-interactive="true" data-filter-chip="false" class="filter-chip-btn px-3 py-1 rounded-full bg-[#F3EDF7] dark:bg-[#211F26] text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">인기순</button>
-              <button type="button" data-interactive="true" data-filter-chip="false" class="filter-chip-btn px-3 py-1 rounded-full bg-[#F3EDF7] dark:bg-[#211F26] text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">무료만</button>
-            </div>
-            <div class="flex justify-end gap-2 text-xs font-semibold">
-              <button type="button" data-interactive="true" data-action="reset-filters" class="px-3 py-1 text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">초기화</button>
-              <button type="button" data-interactive="true" data-action="confirm" class="px-3.5 py-1 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] cursor-pointer">필터 적용</button>
-            </div>
-          </div>`
-      },
-      'otp-pin-modal': {
-        label: '인증번호 / PIN 입력 모달',
-        defaultText: '4자리 인증번호 입력',
-        defaultX: 115,
-        defaultY: 150,
-        defaultWidth: 280,
-        defaultHeight: 172,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between text-center overflow-hidden">
-            <p class="modal-status-text text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</p>
-            <div class="flex justify-center gap-2">
-              <input type="text" maxlength="1" value="4" data-interactive="true" class="w-9 h-10 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#6750A4] dark:border-[#D0BCFF] text-center text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9] outline-none" />
-              <input type="text" maxlength="1" value="8" data-interactive="true" class="w-9 h-10 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#6750A4] dark:border-[#D0BCFF] text-center text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9] outline-none" />
-              <input type="text" maxlength="1" placeholder="•" data-interactive="true" class="w-9 h-10 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E] dark:border-[#938F99] text-center text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9] outline-none" />
-              <input type="text" maxlength="1" placeholder="•" data-interactive="true" class="w-9 h-10 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E] dark:border-[#938F99] text-center text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9] outline-none" />
-            </div>
-            <div class="flex justify-end gap-2 text-xs font-semibold">
-              <button type="button" data-interactive="true" data-action="confirm" class="w-full py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] cursor-pointer">인증 확인</button>
-            </div>
-          </div>`
-      },
-      'payment-summary-sheet': {
-        label: '결제 확인 / 영수증 시트',
-        defaultText: '총 결제 금액 18,900원',
-        defaultX: 105,
-        defaultY: 145,
-        defaultWidth: 304,
-        defaultHeight: 188,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <div class="flex items-center justify-between text-[11px] text-[#49454F] dark:text-[#CAC4D0]">
-              <span>간편결제 승인</span>
-              <span class="font-semibold text-[#6750A4] dark:text-[#D0BCFF]">Android Pay</span>
-            </div>
-            <div class="py-2 px-3 rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] text-center">
-              <p class="modal-status-text text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</p>
-            </div>
-            <button type="button" data-interactive="true" data-action="confirm" class="w-full py-2 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold cursor-pointer">결제하기</button>
-          </div>`
-      },
-      'context-overflow-menu': {
-        label: '더보기 컨텍스트 메뉴 (Menu)',
-        defaultText: '항목 작업 메뉴',
-        defaultX: 145,
-        defaultY: 160,
-        defaultWidth: 200,
-        defaultHeight: 164,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] p-2 shadow-xl border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between text-xs text-[#1D1B20] dark:text-[#E6E0E9] overflow-hidden">
-            <button type="button" data-interactive="true" data-share-app="수정하기" class="w-full text-left px-3 py-2 rounded-xl hover:bg-[#E8DEF8] dark:hover:bg-[#4A4458] cursor-pointer">✎ 수정하기</button>
-            <button type="button" data-interactive="true" data-share-app="복제하기" class="w-full text-left px-3 py-2 rounded-xl hover:bg-[#E8DEF8] dark:hover:bg-[#4A4458] cursor-pointer">❐ 복제하기</button>
-            <button type="button" data-interactive="true" data-share-app="보관함 이동" class="w-full text-left px-3 py-2 rounded-xl hover:bg-[#E8DEF8] dark:hover:bg-[#4A4458] cursor-pointer">▣ 보관함 이동</button>
-            <div class="border-t border-[#CAC4D0]/50 dark:border-[#49454F]/60 my-0.5"></div>
-            <button type="button" data-interactive="true" data-action="delete-confirm" class="w-full text-left px-3 py-1.5 rounded-xl text-[#B3261E] dark:text-[#F2B8B5] font-semibold cursor-pointer">✕ 삭제</button>
-          </div>`
-      },
-      'top-app-bar': {
-        label: '상단 앱바 (TopAppBar)',
-        defaultText: '화면 타이틀',
-        defaultX: 80,
-        defaultY: 96,
-        defaultWidth: 320,
-        defaultHeight: 56,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] px-3.5 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex items-center justify-between gap-2 overflow-hidden">
-            <button type="button" data-interactive="true" data-action="btn-pulse" class="w-8 h-8 rounded-full hover:bg-[#E8DEF8]/60 dark:hover:bg-[#4A4458]/60 flex items-center justify-center text-sm text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">←</button>
-            <span class="modal-status-text text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate flex-1 text-center">${escapeHTML(text)}</span>
-            <button type="button" data-interactive="true" data-action="btn-pulse" class="w-8 h-8 rounded-full hover:bg-[#E8DEF8]/60 dark:hover:bg-[#4A4458]/60 flex items-center justify-center text-sm text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">⋮</button>
-          </div>`
-      },
-      'bottom-nav-bar': {
-        label: '하단 내비게이션 바 (NavigationBar)',
-        defaultText: '하단 탭 바',
-        defaultX: 80,
-        defaultY: 420,
-        defaultWidth: 320,
-        defaultHeight: 68,
-        renderInner: () => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] px-2 shadow-lg border border-[#CAC4D0]/80 dark:border-[#49454F]/80 grid grid-cols-4 items-center text-[11px] overflow-hidden">
-            <button type="button" data-interactive="true" data-nav-tab="0" class="bottom-nav-tab flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8] font-bold cursor-pointer"><span>⌂</span><span>홈</span></button>
-            <button type="button" data-interactive="true" data-nav-tab="1" class="bottom-nav-tab flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer"><span>⌕</span><span>탐색</span></button>
-            <button type="button" data-interactive="true" data-nav-tab="2" class="bottom-nav-tab flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer"><span>🔔</span><span>알림</span></button>
-            <button type="button" data-interactive="true" data-nav-tab="3" class="bottom-nav-tab flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer"><span>☺</span><span>마이</span></button>
-          </div>`
-      },
-      'search-bar': {
-        label: '검색창 바 (SearchBar)',
-        defaultText: '검색어를 입력하세요',
-        defaultX: 95,
-        defaultY: 130,
-        defaultWidth: 300,
-        defaultHeight: 50,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-full bg-[#FEF7FF] dark:bg-[#141218] px-4 shadow-md border border-[#CAC4D0] dark:border-[#49454F] flex items-center gap-2 overflow-hidden">
-            <span class="text-xs text-[#6750A4] dark:text-[#D0BCFF]">⌕</span>
-            <input type="text" data-interactive="true" placeholder="${escapeHTML(text)}" class="search-bar-input w-full bg-transparent text-xs text-[#1D1B20] dark:text-[#E6E0E9] outline-none" />
-            <button type="button" data-interactive="true" data-action="clear-search" class="text-xs text-[#49454F] dark:text-[#CAC4D0] px-1 cursor-pointer">✕</button>
-          </div>`
-      },
-      'segmented-tabs': {
-        label: '세그먼트 탭 버튼 (SegmentedButton)',
-        defaultText: '상태 전환 탭',
-        defaultX: 105,
-        defaultY: 165,
-        defaultWidth: 280,
-        defaultHeight: 44,
-        renderInner: () => `
-          <div class="w-full h-full rounded-full bg-[#FEF7FF] dark:bg-[#141218] p-1 shadow-sm border border-[#79747E] dark:border-[#938F99] grid grid-cols-3 text-xs font-semibold overflow-hidden">
-            <button type="button" data-interactive="true" data-seg-idx="0" class="seg-tab-btn rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8] cursor-pointer">전체</button>
-            <button type="button" data-interactive="true" data-seg-idx="1" class="seg-tab-btn rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">진행중</button>
-            <button type="button" data-interactive="true" data-seg-idx="2" class="seg-tab-btn rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">완료</button>
-          </div>`
-      },
-      'slider-control': {
-        label: '슬라이더 바 (Material Slider)',
-        defaultText: '음량 / 밝기 조절',
-        defaultX: 110,
-        defaultY: 175,
-        defaultWidth: 272,
-        defaultHeight: 64,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] px-4 py-2.5 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <div class="flex items-center justify-between text-[11px] font-semibold text-[#1D1B20] dark:text-[#E6E0E9]">
-              <span class="truncate">${escapeHTML(text)}</span>
-              <span class="slider-val-badge text-[#6750A4] dark:text-[#D0BCFF] font-mono">65%</span>
-            </div>
-            <input type="range" min="0" max="100" value="65" data-interactive="true" class="m3-range-slider w-full accent-[#6750A4] dark:accent-[#D0BCFF] cursor-pointer" />
-          </div>`
-      },
-      'empty-state-card': {
-        label: '빈 화면 안내 카드 (Empty State)',
-        defaultText: '아직 등록된 항목이 없습니다',
-        defaultX: 105,
-        defaultY: 150,
-        defaultWidth: 288,
-        defaultHeight: 180,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] p-5 shadow-md border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex flex-col items-center justify-center text-center gap-2.5 overflow-hidden">
-            <span class="w-10 h-10 rounded-2xl bg-[#E8DEF8] dark:bg-[#4A4458] text-[#6750A4] dark:text-[#D0BCFF] flex items-center justify-center text-base">∅</span>
-            <p class="modal-status-text text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9] break-words">${escapeHTML(text)}</p>
-            <button type="button" data-interactive="true" data-action="btn-pulse" class="px-3.5 py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-[11px] font-semibold cursor-pointer">새로 만들기</button>
-          </div>`
-      },
-      'accordion-panel': {
-        label: '아코디언 패널 (Accordion)',
-        defaultText: '자주 묻는 질문 · 상세 안내',
-        defaultX: 105,
-        defaultY: 150,
-        defaultWidth: 296,
-        defaultHeight: 124,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] p-3.5 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <button type="button" data-interactive="true" data-action="toggle-accordion" class="w-full flex items-center justify-between gap-2 text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">
-              <span class="truncate">${escapeHTML(text)}</span>
-              <span class="accordion-arrow text-[10px] text-[#6750A4] dark:text-[#D0BCFF] shrink-0">▲</span>
-            </button>
-            <div class="accordion-body-content mt-2 pt-2 border-t border-[#CAC4D0]/50 dark:border-[#49454F]/60 text-[11px] text-[#49454F] dark:text-[#CAC4D0] leading-relaxed overflow-hidden">
-              아코디언 헤더를 터치하면 본문 영역이 부드럽게 접히거나 펼쳐집니다.
-            </div>
-          </div>`
-      },
-      'checkbox-group': {
-        label: '체크박스 목록 (Checkbox)',
-        defaultText: '이용약관 전체 동의',
-        defaultX: 110,
-        defaultY: 150,
-        defaultWidth: 280,
-        defaultHeight: 152,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] p-4 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between text-xs overflow-hidden">
-            <p class="font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</p>
-            <div class="space-y-1.5">
-              <button type="button" data-interactive="true" data-checkbox-item="true" data-label="필수 서비스 이용약관" class="m3-checkbox-btn w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-[#E8DEF8]/60 dark:bg-[#4A4458]/60 text-[#1D1B20] dark:text-[#E6E0E9] font-medium cursor-pointer">
-                <span class="chk-box w-4 h-4 rounded bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
-                <span class="truncate">필수 서비스 이용약관</span>
-              </button>
-              <button type="button" data-interactive="true" data-checkbox-item="false" data-label="마케팅 알림 수신 동의" class="m3-checkbox-btn w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">
-                <span class="chk-box w-4 h-4 rounded border border-[#79747E] dark:border-[#938F99] flex items-center justify-center text-[10px] font-bold shrink-0"></span>
-                <span class="truncate">마케팅 알림 수신 동의</span>
-              </button>
-            </div>
-          </div>`
-      },
-      'radio-group': {
-        label: '라디오 버튼 그룹 (RadioButton)',
-        defaultText: '결제 방식 선택',
-        defaultX: 110,
-        defaultY: 155,
-        defaultWidth: 280,
-        defaultHeight: 152,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] p-4 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between text-xs overflow-hidden">
-            <p class="font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</p>
-            <div class="space-y-1.5">
-              <button type="button" data-interactive="true" data-radio-group-item="0" class="m3-radio-btn w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8] font-semibold cursor-pointer">
-                <span class="radio-dot w-4 h-4 rounded-full border-2 border-[#6750A4] dark:border-[#D0BCFF] flex items-center justify-center shrink-0"><span class="w-2 h-2 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF]"></span></span>
-                <span class="truncate">신용 · 체크카드</span>
-              </button>
-              <button type="button" data-interactive="true" data-radio-group-item="1" class="m3-radio-btn w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">
-                <span class="radio-dot w-4 h-4 rounded-full border-2 border-[#79747E] dark:border-[#938F99] flex items-center justify-center shrink-0"></span>
-                <span class="truncate">간편 계좌이체</span>
-              </button>
-            </div>
-          </div>`
-      },
-      'stepper-counter': {
-        label: '수량 스테퍼 (Stepper)',
-        defaultText: '옵션 수량',
-        defaultX: 120,
-        defaultY: 170,
-        defaultWidth: 256,
-        defaultHeight: 56,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] px-4 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex items-center justify-between gap-2 overflow-hidden">
-            <span class="text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</span>
-            <div class="flex items-center gap-2 shrink-0">
-              <button type="button" data-interactive="true" data-action="stepper-dec" class="w-7 h-7 rounded-full bg-[#F3EDF7] dark:bg-[#211F26] text-[#1D1B20] dark:text-[#E6E0E9] font-bold text-sm flex items-center justify-center cursor-pointer">−</button>
-              <span class="stepper-count-val w-6 text-center text-xs font-bold text-[#6750A4] dark:text-[#D0BCFF] font-mono">1</span>
-              <button type="button" data-interactive="true" data-action="stepper-inc" class="w-7 h-7 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] font-bold text-sm flex items-center justify-center cursor-pointer">+</button>
-            </div>
-          </div>`
-      },
-      'progress-indicator': {
-        label: 'Progress Bar (진행률 표시줄)',
-        defaultText: '프로필 완성도',
-        defaultX: 115,
-        defaultY: 175,
-        defaultWidth: 272,
-        defaultHeight: 62,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] px-4 py-2.5 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <div class="flex items-center justify-between text-[11px] font-semibold text-[#1D1B20] dark:text-[#E6E0E9]">
-              <span class="truncate">${escapeHTML(text)}</span>
-              <button type="button" data-interactive="true" data-action="step-progress" data-pct="60" class="progress-pct-btn text-[#6750A4] dark:text-[#D0BCFF] font-mono cursor-pointer">60%</button>
-            </div>
-            <div class="w-full h-2 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] overflow-hidden">
-              <div class="progress-fill-bar h-full rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] transition-all duration-200" style="width: 60%;"></div>
-            </div>
-          </div>`
-      },
-      'bento-menu': {
-        label: 'Bento Menu (벤토 메뉴)',
-        defaultText: '앱 런처 메뉴',
-        defaultX: 130,
-        defaultY: 155,
-        defaultWidth: 216,
-        defaultHeight: 204,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-3xl bg-[#FEF7FF] dark:bg-[#141218] p-4 shadow-xl border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <p class="modal-status-text text-[11px] font-bold text-center text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</p>
-            <div class="grid grid-cols-3 gap-2 text-center text-xs">
-              <button type="button" data-interactive="true" data-share-app="홈" class="p-2 rounded-xl bg-[#E8DEF8]/70 dark:bg-[#4A4458]/70 text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">⊞</button>
-              <button type="button" data-interactive="true" data-share-app="일정" class="p-2 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">📅</button>
-              <button type="button" data-interactive="true" data-share-app="메일" class="p-2 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">✉</button>
-              <button type="button" data-interactive="true" data-share-app="드라이브" class="p-2 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">☁</button>
-              <button type="button" data-interactive="true" data-share-app="사진" class="p-2 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">🖼</button>
-              <button type="button" data-interactive="true" data-share-app="설정" class="p-2 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">⚙</button>
-            </div>
-          </div>`
-      },
-      'form-container': {
-        label: 'Form (입력 폼)',
-        defaultText: '회원 정보 입력 폼',
-        defaultX: 110,
-        defaultY: 145,
-        defaultWidth: 288,
-        defaultHeight: 204,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-3xl bg-[#FEF7FF] dark:bg-[#141218] p-4 shadow-lg border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between text-xs overflow-hidden">
-            <p class="modal-status-text font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</p>
-            <div class="space-y-2">
-              <input type="text" data-interactive="true" placeholder="이름 입력" class="modal-inline-input w-full px-3 py-1.5 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E]/60 text-[#1D1B20] dark:text-[#E6E0E9] outline-none" />
-              <input type="email" data-interactive="true" placeholder="이메일 입력" class="w-full px-3 py-1.5 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E]/60 text-[#1D1B20] dark:text-[#E6E0E9] outline-none" />
-            </div>
-            <button type="button" data-interactive="true" data-action="submit-input" class="w-full py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] font-semibold cursor-pointer">제출하기</button>
-          </div>`
-      },
-      'breadcrumb-nav': {
-        label: 'Breadcrumb (브레드크럼)',
-        defaultText: '홈 > 카테고리 > 상세 페이지',
-        defaultX: 100,
-        defaultY: 140,
-        defaultWidth: 288,
-        defaultHeight: 42,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-xl bg-[#FEF7FF] dark:bg-[#141218] px-3.5 shadow-sm border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex items-center gap-1.5 text-[11px] font-medium text-[#49454F] dark:text-[#CAC4D0] overflow-hidden">
-            <span class="truncate">${escapeHTML(text)}</span>
-          </div>`
-      },
-      'doner-menu': {
-        label: 'Döner Menu (도너 메뉴)',
-        defaultText: '필터 정렬 메뉴',
-        defaultX: 140,
-        defaultY: 150,
-        defaultWidth: 180,
-        defaultHeight: 48,
-        renderInner: (text) => `
-          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] px-3.5 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex items-center justify-between text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">
-            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
-            <span class="flex flex-col items-center gap-[3px] shrink-0">
-              <span class="w-4 h-0.5 bg-[#6750A4] dark:bg-[#D0BCFF] rounded"></span>
-              <span class="w-2.5 h-0.5 bg-[#6750A4] dark:bg-[#D0BCFF] rounded"></span>
-              <span class="w-1.5 h-0.5 bg-[#6750A4] dark:bg-[#D0BCFF] rounded"></span>
-            </span>
-          </button>`
-      },
-      'hamburger-menu': {
-        label: 'Hamburger Menu (햄버거 메뉴)',
-        defaultText: '전체 메뉴 열기',
-        defaultX: 140,
-        defaultY: 150,
-        defaultWidth: 180,
-        defaultHeight: 48,
-        renderInner: (text) => `
-          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] px-3.5 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex items-center gap-2.5 text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9] cursor-pointer">
-            <span class="text-base text-[#6750A4] dark:text-[#D0BCFF]">☰</span>
-            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
-          </button>`
-      },
-      'kebab-menu': {
-        label: 'Kebab Menu (케밥 메뉴)',
-        defaultText: '세로 더보기',
-        defaultX: 155,
-        defaultY: 165,
-        defaultWidth: 52,
-        defaultHeight: 52,
-        renderInner: () => `
-          <button type="button" data-interactive="true" data-action="toggle-square-icon" class="w-full h-full rounded-full bg-[#FEF7FF] dark:bg-[#141218] border border-[#CAC4D0]/80 dark:border-[#49454F]/80 shadow-md text-lg font-bold text-[#1D1B20] dark:text-[#E6E0E9] flex items-center justify-center cursor-pointer">⋮</button>`
-      },
-      'meatballs-menu': {
-        label: 'Meatballs Menu (미트볼 메뉴)',
-        defaultText: '가로 더보기',
-        defaultX: 155,
-        defaultY: 165,
-        defaultWidth: 52,
-        defaultHeight: 52,
-        renderInner: () => `
-          <button type="button" data-interactive="true" data-action="toggle-square-icon" class="w-full h-full rounded-full bg-[#FEF7FF] dark:bg-[#141218] border border-[#CAC4D0]/80 dark:border-[#49454F]/80 shadow-md text-lg font-bold text-[#1D1B20] dark:text-[#E6E0E9] flex items-center justify-center cursor-pointer">⋯</button>`
-      },
-      'pagination-bar': {
-        label: 'Pagination (페이지네이션)',
-        defaultText: '페이지 이동',
-        defaultX: 115,
-        defaultY: 175,
-        defaultWidth: 256,
-        defaultHeight: 46,
-        renderInner: () => `
-          <div class="w-full h-full rounded-full bg-[#FEF7FF] dark:bg-[#141218] px-2 shadow-sm border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex items-center justify-between text-xs font-semibold">
-            <button type="button" data-interactive="true" data-seg-idx="0" class="seg-tab-btn w-7 h-7 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] cursor-pointer">1</button>
-            <button type="button" data-interactive="true" data-seg-idx="1" class="seg-tab-btn w-7 h-7 rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">2</button>
-            <button type="button" data-interactive="true" data-seg-idx="2" class="seg-tab-btn w-7 h-7 rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">3</button>
-            <button type="button" data-interactive="true" data-seg-idx="3" class="seg-tab-btn w-7 h-7 rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">4</button>
-          </div>`
-      },
-      'sidebar-drawer': {
-        label: 'Sidebar (사이드바 드로어)',
-        defaultText: '내비게이션 드로어',
-        defaultX: 70,
-        defaultY: 110,
-        defaultWidth: 220,
-        defaultHeight: 320,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-r-[28px] rounded-l-2xl bg-[#FEF7FF] dark:bg-[#141218] p-4 shadow-2xl border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between text-xs overflow-hidden">
-            <p class="font-bold text-[#1D1B20] dark:text-[#E6E0E9] px-2 pt-1 truncate">${escapeHTML(text)}</p>
-            <div class="space-y-1.5 my-auto">
-              <button type="button" data-interactive="true" data-nav-tab="0" class="bottom-nav-tab w-full text-left px-3 py-2 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8] font-bold cursor-pointer">⌂ 대시보드</button>
-              <button type="button" data-interactive="true" data-nav-tab="1" class="bottom-nav-tab w-full text-left px-3 py-2 rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">★ 즐겨찾기</button>
-              <button type="button" data-interactive="true" data-nav-tab="2" class="bottom-nav-tab w-full text-left px-3 py-2 rounded-full text-[#49454F] dark:text-[#CAC4D0] cursor-pointer">⚙ 환경설정</button>
-            </div>
-            <div class="text-[10px] text-[#49454F] dark:text-[#CAC4D0] px-2">NavigationDrawer</div>
-          </div>`
-      },
-      'badge-chip': {
-        label: 'Badge (뱃지)',
-        defaultText: 'NEW · 9+',
-        defaultX: 160,
-        defaultY: 170,
-        defaultWidth: 96,
-        defaultHeight: 34,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-full bg-[#B3261E] dark:bg-[#F2B8B5] text-white dark:text-[#601410] text-xs font-bold shadow-sm flex items-center justify-center px-3 overflow-hidden">
-            <span class="truncate">${escapeHTML(text)}</span>
-          </div>`
-      },
-      'comment-box': {
-        label: 'Comment (댓글 카드)',
-        defaultText: '김지훈 · 레이아웃 구성이 깔끔하네요!',
-        defaultX: 105,
-        defaultY: 155,
-        defaultWidth: 296,
-        defaultHeight: 88,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] p-3.5 shadow-sm border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex items-center gap-3 text-xs overflow-hidden">
-            <span class="w-8 h-8 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] text-[#6750A4] dark:text-[#D0BCFF] font-bold flex items-center justify-center shrink-0">유저</span>
-            <div class="min-w-0 flex-1">
-              <p class="text-[#1D1B20] dark:text-[#E6E0E9] font-medium leading-snug break-words">${escapeHTML(text)}</p>
-              <span class="text-[10px] text-[#49454F] dark:text-[#CAC4D0]">방금 전 · 답글 달기</span>
-            </div>
-          </div>`
-      },
-      'feed-card': {
-        label: 'Feed (피드 아이템)',
-        defaultText: '새로운 업데이트 피드 소식입니다.',
-        defaultX: 100,
-        defaultY: 145,
-        defaultWidth: 300,
-        defaultHeight: 168,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-3xl bg-[#FEF7FF] dark:bg-[#141218] p-4 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between text-xs overflow-hidden">
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-[10px] font-bold flex items-center justify-center">F</span>
-              <span class="font-bold text-[#1D1B20] dark:text-[#E6E0E9]">Android Studio Feed</span>
-            </div>
-            <div class="py-3 px-3 rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] text-[#1D1B20] dark:text-[#E6E0E9] break-words">${escapeHTML(text)}</div>
-            <div class="flex justify-between text-[11px] text-[#49454F] dark:text-[#CAC4D0]">
-              <span>♡ 좋아요 24</span>
-              <span>💬 댓글 5</span>
-            </div>
-          </div>`
-      },
-      'tag-chip': {
-        label: 'Tag (태그 칩)',
-        defaultText: '#AndroidUI',
-        defaultX: 150,
-        defaultY: 170,
-        defaultWidth: 124,
-        defaultHeight: 38,
-        renderInner: (text) => `
-          <button type="button" data-interactive="true" data-action="toggle-square-icon" class="w-full h-full rounded-lg bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8] border border-[#CAC4D0]/60 dark:border-[#49454F]/60 text-xs font-semibold flex items-center justify-center px-3 cursor-pointer">
-            <span class="truncate">${escapeHTML(text)}</span>
-          </button>`
-      },
-      'tooltip-bubble': {
-        label: 'Tooltip (툴팁)',
-        defaultText: '버튼을 길게 눌러 옵션을 확인하세요',
-        defaultX: 120,
-        defaultY: 160,
-        defaultWidth: 236,
-        defaultHeight: 44,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-xl bg-[#322F35] dark:bg-[#E6E0E9] text-[#F5EFF7] dark:text-[#322F35] px-3.5 shadow-lg flex items-center justify-center text-[11px] font-medium overflow-hidden">
-            <span class="truncate">${escapeHTML(text)}</span>
-          </div>`
-      },
-      'carousel-slider': {
-        label: 'Carousel (캐러셀)',
-        defaultText: '추천 배너 슬라이드 1',
-        defaultX: 95,
-        defaultY: 145,
-        defaultWidth: 312,
-        defaultHeight: 164,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-3xl bg-[#FEF7FF] dark:bg-[#141218] p-4 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex flex-col justify-between overflow-hidden">
-            <div class="flex-1 rounded-2xl bg-[#E8DEF8]/80 dark:bg-[#4A4458]/80 flex items-center justify-between px-3">
-              <button type="button" data-interactive="true" data-action="next-guide-step" data-step="1" class="w-7 h-7 rounded-full bg-[#FEF7FF] dark:bg-[#141218] text-xs font-bold cursor-pointer">‹</button>
-              <p class="modal-status-text text-xs font-bold text-[#1D192B] dark:text-[#E8DEF8] text-center px-2 truncate">${escapeHTML(text)}</p>
-              <button type="button" data-interactive="true" data-action="next-guide-step" data-step="1" class="w-7 h-7 rounded-full bg-[#FEF7FF] dark:bg-[#141218] text-xs font-bold cursor-pointer">›</button>
-            </div>
-            <div class="pt-2 flex items-center justify-center gap-1.5 text-[10px] font-bold text-[#6750A4] dark:text-[#D0BCFF]">
-              <span class="step-indicator-text">1 / 3</span>
-            </div>
-          </div>`
-      },
-      'empty-box': {
-        label: '빈 사각 박스 (Empty Box)',
-        defaultText: '',
-        defaultX: 120,
-        defaultY: 160,
-        defaultWidth: 220,
-        defaultHeight: 140,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF]/80 dark:bg-[#141218]/80 border-2 border-dashed border-[#79747E]/60 dark:border-[#938F99]/60 flex items-center justify-center text-center p-3 overflow-hidden">
-            ${text ? `<span class="text-xs font-medium text-[#49454F] dark:text-[#CAC4D0] break-words">${escapeHTML(text)}</span>` : ''}
-          </div>`
-      },
-      'empty-solid-rect': {
-        label: '실선 사각 프레임 (Solid Rect)',
-        defaultText: '',
-        defaultX: 125,
-        defaultY: 165,
-        defaultWidth: 220,
-        defaultHeight: 140,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] border-2 border-[#79747E] dark:border-[#938F99] shadow-sm flex items-center justify-center text-center p-3 overflow-hidden">
-            ${text ? `<span class="text-xs font-medium text-[#1D1B20] dark:text-[#E6E0E9] break-words">${escapeHTML(text)}</span>` : ''}
-          </div>`
-      },
-      'filled-button': {
-        label: '기본 버튼 (Filled Button)',
-        defaultText: '확인 버튼',
-        defaultX: 140,
-        defaultY: 180,
-        defaultWidth: 160,
-        defaultHeight: 48,
-        renderInner: (text) => `
-          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold shadow-md active:scale-95 transition flex items-center justify-center px-4 cursor-pointer">
-            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
-          </button>`
-      },
-      'outlined-button': {
-        label: '외곽선 버튼 (Outlined Button)',
-        defaultText: '보조 버튼',
-        defaultX: 140,
-        defaultY: 180,
-        defaultWidth: 160,
-        defaultHeight: 48,
-        renderInner: (text) => `
-          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full rounded-full bg-[#FEF7FF] dark:bg-[#141218] border border-[#79747E] dark:border-[#938F99] text-[#6750A4] dark:text-[#D0BCFF] text-xs font-bold active:scale-95 transition flex items-center justify-center px-4 cursor-pointer">
-            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
-          </button>`
-      },
-      'square-icon': {
-        label: '사각 아이콘 버튼 (Square Icon)',
-        defaultText: '★',
-        defaultX: 160,
-        defaultY: 180,
-        defaultWidth: 56,
-        defaultHeight: 56,
-        renderInner: (text) => `
-          <button type="button" data-interactive="true" data-action="toggle-square-icon" class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] text-[#1D1B20] dark:text-[#E6E0E9] border border-[#CAC4D0] dark:border-[#49454F] shadow-md text-lg font-bold active:scale-90 transition flex items-center justify-center cursor-pointer">
-            <span>${escapeHTML(text || '★')}</span>
-          </button>`
-      },
-      'toggle-switch-item': {
-        label: '토글 스위치 바 (Switch)',
-        defaultText: '알림 설정',
-        defaultX: 130,
-        defaultY: 175,
-        defaultWidth: 240,
-        defaultHeight: 56,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] px-4 shadow-md border border-[#CAC4D0]/80 dark:border-[#49454F]/80 flex items-center justify-between gap-3">
-            <span class="text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</span>
-            <button type="button" data-interactive="true" data-action="toggle-m3-switch" data-checked="true" class="m3-switch-track w-12 h-7 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] p-1 flex items-center justify-end transition-colors cursor-pointer shrink-0">
-              <span class="m3-switch-thumb w-5 h-5 rounded-full bg-white dark:bg-[#381E72] shadow"></span>
-            </button>
-          </div>`
-      },
-      'card-container': {
-        label: 'ElevatedCard',
-        defaultText: '카드 중앙 텍스트',
-        defaultX: 130,
-        defaultY: 180,
-        defaultWidth: 288,
-        defaultHeight: 128,
-        renderInner: (text) => `
-          <div class="w-full h-full rounded-2xl bg-[#FEF7FF] dark:bg-[#141218] p-4 shadow-md border border-[#CAC4D0]/70 dark:border-[#49454F]/80 flex items-center justify-center text-center overflow-hidden">
-            <p class="text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9] break-words">${escapeHTML(text)}</p>
-          </div>`
-      }
-    };
-
-    /**
-     * 모달 중앙 텍스트 편집 팝업 열기
+     * 모달 중앙 텍스트 및 전체 구성 텍스트·아이콘 편집 팝업 열기
      */
     function openModalTextEditor(itemId) {
       const currentProject = projects.find((p) => p.id === activeProjectId);
@@ -1945,12 +1061,83 @@
 
       const template = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['center-text-modal'];
       editingModalItemId = itemId;
-      modalCenterTextInput.value = typeof item.text === 'string' ? item.text : template.defaultText;
+
+      modalLabelInput.value = item.label || template.label;
+      modalDynamicTextsContainer.innerHTML = '';
+      modalDynamicIconsContainer.innerHTML = '';
+
+      const { textSlots, iconSlots } = collectEditableNodesFromTemplate(item);
+      const savedTexts = Array.isArray(item.customTexts) ? item.customTexts : [];
+      const savedIcons = Array.isArray(item.customIcons) ? item.customIcons : [];
+
+      if (textSlots.length > 0) {
+        const sectionTitle = document.createElement('p');
+        sectionTitle.className = 'text-[11px] font-bold text-slate-700 dark:text-slate-300 pt-1';
+        sectionTitle.textContent = '구성 텍스트 편집';
+        modalDynamicTextsContainer.appendChild(sectionTitle);
+
+        textSlots.forEach((slot, idx) => {
+          const currentVal = typeof savedTexts[idx] === 'string' ? savedTexts[idx] : slot.defaultVal;
+          const wrap = document.createElement('div');
+          wrap.innerHTML = `
+            <label class="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">텍스트 ${idx + 1}</label>
+            <input
+              type="text"
+              data-edit-text-idx="${idx}"
+              value="${escapeHTML(currentVal)}"
+              class="modal-part-text-input w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400"
+            />
+          `;
+          modalDynamicTextsContainer.appendChild(wrap);
+        });
+      }
+
+      if (iconSlots.length > 0) {
+        const iconHeader = document.createElement('p');
+        iconHeader.className = 'text-[11px] font-bold text-slate-700 dark:text-slate-300 pt-1';
+        iconHeader.textContent = '아이콘 편집';
+        modalDynamicIconsContainer.appendChild(iconHeader);
+
+        iconSlots.forEach((slot, idx) => {
+          const currentIcon = typeof savedIcons[idx] === 'string' && savedIcons[idx] ? savedIcons[idx] : slot.defaultVal;
+          const row = document.createElement('div');
+          row.className = 'p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/80 space-y-2';
+          row.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-medium text-slate-600 dark:text-slate-300">아이콘 ${idx + 1}</span>
+              <input
+                type="text"
+                data-edit-icon-idx="${idx}"
+                value="${escapeHTML(currentIcon)}"
+                maxlength="6"
+                placeholder="이모지/기호"
+                class="modal-part-icon-input w-20 px-2.5 py-1 text-center text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400"
+              />
+            </div>
+            <div class="flex flex-wrap gap-1">
+              ${ICON_PRESET_CHOICES.map((ic) => `<button type="button" data-pick-icon-for="${idx}" data-icon-char="${escapeHTML(ic)}" class="icon-preset-chip w-6 h-6 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 text-xs flex items-center justify-center cursor-pointer">${escapeHTML(ic)}</button>`).join('')}
+            </div>
+          `;
+          modalDynamicIconsContainer.appendChild(row);
+        });
+
+        modalDynamicIconsContainer.querySelectorAll('.icon-preset-chip').forEach((chipBtn) => {
+          chipBtn.addEventListener('click', () => {
+            const targetIdx = chipBtn.dataset.pickIconFor;
+            const targetInput = modalDynamicIconsContainer.querySelector(`.modal-part-icon-input[data-edit-icon-idx="${targetIdx}"]`);
+            if (targetInput) {
+              targetInput.value = chipBtn.dataset.iconChar || '';
+            }
+          });
+        });
+      }
+
       editModalTextOverlay.classList.remove('hidden');
       editModalTextOverlay.classList.add('flex');
       setTimeout(() => {
-        modalCenterTextInput.focus();
-        modalCenterTextInput.select();
+        const firstTextInput = modalDynamicTextsContainer.querySelector('.modal-part-text-input') || modalLabelInput;
+        firstTextInput.focus();
+        firstTextInput.select();
       }, 30);
     }
 
@@ -1971,16 +1158,34 @@
         const item = currentProject.modals.find((m) => m.id === editingModalItemId);
         if (item) {
           const beforeSnapshot = JSON.stringify(currentProject.modals || []);
-          item.text = modalCenterTextInput.value.trim();
+          const newLabel = modalLabelInput.value.trim();
+          if (newLabel) item.label = newLabel;
+
+          const newTexts = [];
+          modalDynamicTextsContainer.querySelectorAll('.modal-part-text-input').forEach((inp) => {
+            newTexts.push(inp.value);
+          });
+          item.customTexts = newTexts;
+          if (newTexts.length > 0) {
+            item.text = newTexts[0];
+          }
+
+          const newIcons = [];
+          modalDynamicIconsContainer.querySelectorAll('.modal-part-icon-input').forEach((inp) => {
+            newIcons.push(inp.value.trim());
+          });
+          item.customIcons = newIcons;
+
           pushUndoSnapshot(beforeSnapshot);
           saveProjects();
           renderWorkspaceLayers();
+          if (isLayerPopupOpen) renderLayerPopupList();
         }
       }
       closeModalTextEditor();
     });
 
-    modalCenterTextInput.addEventListener('keydown', (e) => {
+    editModalTextOverlay.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         saveModalTextBtn.click();
@@ -2286,6 +1491,7 @@
           </div>
         `;
 
+        applyCustomTextsAndIconsToElement(layerEl.querySelector('.modal-body-box'), item);
         bindInteractiveModalControls(layerEl);
 
         const resizeHandle = layerEl.querySelector('.resize-handle');
@@ -2682,6 +1888,986 @@
       snapGuideLayer.innerHTML = '';
     }
 
+    // UI · 모달 컴포넌트 템플릿 정의
+    const COMPONENT_TEMPLATES = {
+      'accordion-panel': {
+        label: 'Accordion (아코디언)',
+        defaultText: '상세 안내 아코디언',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 112,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-lg flex flex-col justify-between">
+            <button type="button" data-interactive="true" data-action="toggle-accordion" class="w-full flex items-center justify-between text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9]">
+              <span class="truncate">${escapeHTML(text)}</span>
+              <span class="accordion-arrow text-[11px] text-[#6750A4] dark:text-[#D0BCFF]">▲</span>
+            </button>
+            <div class="accordion-body-content mt-2 pt-2 border-t border-[#CAC4D0]/60 dark:border-[#49454F]/60 text-[11px] text-[#49454F] dark:text-[#CAC4D0] leading-relaxed">
+              클릭하여 세부 항목을 접거나 펼칠 수 있는 아코디언 영역입니다.
+            </div>
+          </div>
+        `
+      },
+      'bento-menu': {
+        label: 'Bento Menu (벤토 메뉴)',
+        defaultText: '앱 런처 메뉴',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 240,
+        defaultHeight: 176,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-lg flex flex-col justify-between">
+            <p class="text-[11px] font-bold text-[#1D1B20] dark:text-[#E6E0E9] px-1">${escapeHTML(text)}</p>
+            <div class="grid grid-cols-3 gap-2 my-auto">
+              ${['🏠 홈', '🔍 검색', '💬 채팅', '📅 일정', '🔔 알림', '⚙ 설정'].map((item) => {
+                const [ic, name] = item.split(' ');
+                return `<button type="button" data-interactive="true" data-action="btn-pulse" class="flex flex-col items-center justify-center p-2 rounded-2xl bg-[#E8DEF8]/70 dark:bg-[#4A4458]/60 text-[#1D1B20] dark:text-[#E6E0E9] text-[10px] font-medium">
+                  <span class="text-sm mb-0.5">${ic}</span><span>${name}</span>
+                </button>`;
+              }).join('')}
+            </div>
+          </div>
+        `
+      },
+      'filled-button': {
+        label: 'Button · Filled (기본 버튼)',
+        defaultText: '확인하기',
+        defaultX: 60,
+        defaultY: 72,
+        defaultWidth: 168,
+        defaultHeight: 48,
+        renderInner: (text) => `
+          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold shadow-md flex items-center justify-center px-4">
+            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
+          </button>
+        `
+      },
+      'outlined-button': {
+        label: 'Button · Outlined (외곽선 버튼)',
+        defaultText: '취소하기',
+        defaultX: 60,
+        defaultY: 72,
+        defaultWidth: 168,
+        defaultHeight: 48,
+        renderInner: (text) => `
+          <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full h-full rounded-full bg-[#FEF7FF] dark:bg-[#141218] border border-[#79747E] dark:border-[#938F99] text-[#6750A4] dark:text-[#D0BCFF] text-xs font-bold flex items-center justify-center px-4">
+            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
+          </button>
+        `
+      },
+      'checkbox-group': {
+        label: 'Checkbox (체크박스)',
+        defaultText: '필수 약관 동의',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 256,
+        defaultHeight: 132,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-lg flex flex-col justify-center gap-1.5">
+            <button type="button" data-interactive="true" data-checkbox-item="true" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-[#E8DEF8]/60 dark:bg-[#4A4458]/60 text-xs font-medium text-[#1D1B20] dark:text-[#E6E0E9] text-left">
+              <span class="chk-box w-4 h-4 rounded bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+              <span class="truncate">${escapeHTML(text)}</span>
+            </button>
+            <button type="button" data-interactive="true" data-checkbox-item="false" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] text-xs text-[#49454F] dark:text-[#CAC4D0] text-left">
+              <span class="chk-box w-4 h-4 rounded border border-[#79747E] dark:border-[#938F99] flex items-center justify-center text-[10px] font-bold shrink-0"></span>
+              <span class="truncate">마케팅 알림 수신 동의 (선택)</span>
+            </button>
+          </div>
+        `
+      },
+      'dropdown-menu': {
+        label: 'Dropdown (드롭다운)',
+        defaultText: '카테고리 선택',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 236,
+        defaultHeight: 54,
+        renderInner: (text) => `
+          <div class="relative w-full h-full">
+            <button type="button" data-interactive="true" data-action="toggle-dropdown" class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E] dark:border-[#938F99] px-3.5 flex items-center justify-between text-xs font-medium text-[#1D1B20] dark:text-[#E6E0E9]">
+              <span class="dropdown-selected-label truncate">${escapeHTML(text)}</span>
+              <span class="dropdown-arrow text-[10px] text-[#49454F] dark:text-[#CAC4D0]">▼</span>
+            </button>
+            <div class="dropdown-list-panel hidden absolute left-0 right-0 top-full mt-1 rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] shadow-xl p-1 z-20">
+              ${['옵션 항목 1', '옵션 항목 2', '옵션 항목 3'].map((opt) => `<button type="button" data-interactive="true" data-dropdown-choice="${opt}" class="w-full text-left px-3 py-1.5 rounded-xl text-xs hover:bg-[#E8DEF8] dark:hover:bg-[#4A4458] text-[#1D1B20] dark:text-[#E6E0E9]">${opt}</button>`).join('')}
+            </div>
+          </div>
+        `
+      },
+      'form-container': {
+        label: 'Form (폼)',
+        defaultText: '정보 입력 폼',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 196,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-lg flex flex-col justify-between">
+            <p class="text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</p>
+            <div class="space-y-2 my-auto">
+              <input type="text" data-interactive="true" placeholder="이름을 입력하세요" class="modal-inline-input w-full px-3 py-1.5 rounded-xl bg-white/80 dark:bg-[#141218]/80 border border-[#CAC4D0] dark:border-[#49454F] text-xs text-[#1D1B20] dark:text-[#E6E0E9]" />
+              <input type="text" data-interactive="true" placeholder="연락처 또는 이메일" class="w-full px-3 py-1.5 rounded-xl bg-white/80 dark:bg-[#141218]/80 border border-[#CAC4D0] dark:border-[#49454F] text-xs text-[#1D1B20] dark:text-[#E6E0E9]" />
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="modal-status-text text-[10px] text-[#49454F] dark:text-[#CAC4D0] truncate">입력 대기 중</span>
+              <button type="button" data-interactive="true" data-action="submit-input" class="px-3.5 py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-[11px] font-bold">제출</button>
+            </div>
+          </div>
+        `
+      },
+      'text-box': {
+        label: 'Input Field · 단문 (입력 필드)',
+        defaultText: '내용을 입력하세요',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 248,
+        defaultHeight: 52,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E] dark:border-[#938F99] px-3.5 flex items-center gap-2">
+            <input type="text" data-interactive="true" placeholder="${escapeHTML(text)}" class="modal-inline-input w-full bg-transparent text-xs text-[#1D1B20] dark:text-[#E6E0E9] focus:outline-none" />
+            <button type="button" data-interactive="true" data-action="clear-input" class="text-xs text-[#49454F] dark:text-[#CAC4D0]">✕</button>
+          </div>
+        `
+      },
+      'multiline-textbox': {
+        label: 'Input Field · 다중 줄 (멀티라인)',
+        defaultText: '상세 메모를 작성하세요...',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 264,
+        defaultHeight: 112,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E] dark:border-[#938F99] p-3 flex flex-col">
+            <textarea data-interactive="true" placeholder="${escapeHTML(text)}" class="w-full h-full bg-transparent text-xs text-[#1D1B20] dark:text-[#E6E0E9] resize-none focus:outline-none"></textarea>
+          </div>
+        `
+      },
+      'time-date-modal': {
+        label: 'Picker (날짜·시간 선택기)',
+        defaultText: '방문 일시 선택',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 176,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-lg flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</p>
+              <span class="text-xs">📅</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5">
+              ${['오늘 14:00', '오늘 16:30', '내일 10:00', '내일 15:00', '금요일 11:00', '토요일 13:30'].map((slot, i) => `<button type="button" data-interactive="true" data-date-chip="${slot}" class="date-chip-btn py-1.5 px-2 rounded-xl text-[10px] ${i === 0 ? 'bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] font-semibold' : 'bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] text-[#1D1B20] dark:text-[#E6E0E9]'}">${slot}</button>`).join('')}
+            </div>
+            <div class="flex justify-end gap-2">
+              <span class="modal-status-text text-[10px] text-[#49454F] dark:text-[#CAC4D0] mr-auto self-center"></span>
+              <button type="button" data-interactive="true" data-action="confirm" class="px-3 py-1 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-[11px] font-bold">적용</button>
+            </div>
+          </div>
+        `
+      },
+      'radio-group': {
+        label: 'Radio Buttons (라디오 버튼)',
+        defaultText: '정렬 기준 선택',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 248,
+        defaultHeight: 148,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-lg flex flex-col justify-between">
+            <p class="text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9] px-1">${escapeHTML(text)}</p>
+            <div class="space-y-1">
+              ${['최신순', '인기순', '가격순'].map((opt, idx) => `<button type="button" data-interactive="true" data-radio-group-item="${opt}" class="m3-radio-btn w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs ${idx === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458] font-semibold' : 'bg-[#F3EDF7] dark:bg-[#211F26]'} text-[#1D1B20] dark:text-[#E6E0E9]">
+                <span class="radio-dot w-4 h-4 rounded-full border-2 ${idx === 0 ? 'border-[#6750A4] dark:border-[#D0BCFF]' : 'border-[#79747E] dark:border-[#938F99]'} flex items-center justify-center shrink-0">${idx === 0 ? '<span class="w-2 h-2 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF]"></span>' : ''}</span>
+                <span>${opt}</span>
+              </button>`).join('')}
+            </div>
+          </div>
+        `
+      },
+      'search-bar': {
+        label: 'Search Field (검색 필드)',
+        defaultText: '검색어를 입력하세요',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 48,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-full bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] px-3.5 shadow-sm flex items-center gap-2">
+            <span class="text-xs">🔍</span>
+            <input type="text" data-interactive="true" placeholder="${escapeHTML(text)}" class="search-bar-input w-full bg-transparent text-xs text-[#1D1B20] dark:text-[#E6E0E9] focus:outline-none" />
+            <button type="button" data-interactive="true" data-action="clear-search" class="text-xs text-[#49454F] dark:text-[#CAC4D0]">✕</button>
+          </div>
+        `
+      },
+      'slider-control': {
+        label: 'Slider Controls (슬라이더)',
+        defaultText: '화면 밝기 조절',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 256,
+        defaultHeight: 84,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-md flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9]">
+              <span>${escapeHTML(text)}</span>
+              <span class="slider-val-badge text-[#6750A4] dark:text-[#D0BCFF] font-mono">65%</span>
+            </div>
+            <input type="range" data-interactive="true" min="0" max="100" value="65" class="m3-range-slider w-full accent-[#6750A4] dark:accent-[#D0BCFF]" />
+          </div>
+        `
+      },
+      'stepper-counter': {
+        label: 'Stepper (스테퍼)',
+        defaultText: '수량 선택',
+        defaultX: 56,
+        defaultY: 72,
+        defaultWidth: 220,
+        defaultHeight: 54,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-full bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] px-3.5 shadow-sm flex items-center justify-between">
+            <span class="text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</span>
+            <div class="flex items-center gap-2">
+              <button type="button" data-interactive="true" data-action="stepper-dec" class="w-7 h-7 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] text-xs font-bold">−</button>
+              <span class="stepper-count-val text-xs font-bold w-4 text-center">1</span>
+              <button type="button" data-interactive="true" data-action="stepper-inc" class="w-7 h-7 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">+</button>
+            </div>
+          </div>
+        `
+      },
+      'toggle-switch-item': {
+        label: 'Toggle (토글 스위치)',
+        defaultText: '푸시 알림 허용',
+        defaultX: 56,
+        defaultY: 72,
+        defaultWidth: 240,
+        defaultHeight: 56,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] px-4 shadow-sm flex items-center justify-between">
+            <span class="text-xs font-semibold text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</span>
+            <button type="button" data-interactive="true" data-action="toggle-m3-switch" data-checked="true" class="w-11 h-6 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] p-1 flex items-center justify-end transition-all">
+              <span class="w-4 h-4 rounded-full bg-white dark:bg-[#381E72] shadow"></span>
+            </button>
+          </div>
+        `
+      },
+      'top-app-bar': {
+        label: 'TopAppBar (상단 앱바)',
+        defaultText: '화면 타이틀',
+        defaultX: 40,
+        defaultY: 56,
+        defaultWidth: 320,
+        defaultHeight: 56,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] px-3.5 shadow-sm flex items-center justify-between">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <button type="button" data-interactive="true" data-action="btn-pulse" class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">←</button>
+              <span class="modal-status-text text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">${escapeHTML(text)}</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-[#49454F] dark:text-[#CAC4D0]">
+              <span>🔍</span><span>⋮</span>
+            </div>
+          </div>
+        `
+      },
+      'breadcrumb-nav': {
+        label: 'Breadcrumb (브레드크럼)',
+        defaultText: '현재 페이지',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 260,
+        defaultHeight: 42,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-full bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] px-3.5 flex items-center gap-1.5 text-[11px] text-[#49454F] dark:text-[#CAC4D0]">
+            <span>홈</span><span>›</span><span>카테고리</span><span>›</span>
+            <span class="font-bold text-[#6750A4] dark:text-[#D0BCFF] truncate">${escapeHTML(text)}</span>
+          </div>
+        `
+      },
+      'doner-menu': {
+        label: 'Döner Menu (도너 메뉴)',
+        defaultText: '필터',
+        defaultX: 64,
+        defaultY: 72,
+        defaultWidth: 48,
+        defaultHeight: 48,
+        renderInner: () => `
+          <button type="button" data-interactive="true" data-action="toggle-square-icon" class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] flex flex-col items-center justify-center gap-1 shadow-sm">
+            <span class="w-5 h-0.5 bg-current rounded"></span>
+            <span class="w-3.5 h-0.5 bg-current rounded"></span>
+            <span class="w-2 h-0.5 bg-current rounded"></span>
+          </button>
+        `
+      },
+      'hamburger-menu': {
+        label: 'Hamburger Menu (햄버거 메뉴)',
+        defaultText: '메뉴',
+        defaultX: 64,
+        defaultY: 72,
+        defaultWidth: 48,
+        defaultHeight: 48,
+        renderInner: () => `
+          <button type="button" data-interactive="true" data-action="toggle-square-icon" class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] flex items-center justify-center text-base font-bold shadow-sm">☰</button>
+        `
+      },
+      'kebab-menu': {
+        label: 'Kebab Menu (케밥 메뉴)',
+        defaultText: '더보기',
+        defaultX: 64,
+        defaultY: 72,
+        defaultWidth: 48,
+        defaultHeight: 48,
+        renderInner: () => `
+          <button type="button" data-interactive="true" data-action="toggle-square-icon" class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] flex items-center justify-center text-base font-bold shadow-sm">⋮</button>
+        `
+      },
+      'meatballs-menu': {
+        label: 'Meatballs Menu (미트볼 메뉴)',
+        defaultText: '옵션',
+        defaultX: 64,
+        defaultY: 72,
+        defaultWidth: 48,
+        defaultHeight: 48,
+        renderInner: () => `
+          <button type="button" data-interactive="true" data-action="toggle-square-icon" class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] flex items-center justify-center text-base font-bold shadow-sm">⋯</button>
+        `
+      },
+      'context-overflow-menu': {
+        label: 'Overflow Menu (컨텍스트 메뉴)',
+        defaultText: '항목 수정',
+        defaultX: 56,
+        defaultY: 68,
+        defaultWidth: 184,
+        defaultHeight: 152,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-1.5 shadow-xl flex flex-col justify-between text-xs">
+            <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full text-left px-3 py-1.5 rounded-xl hover:bg-[#E8DEF8] dark:hover:bg-[#4A4458]">✎ ${escapeHTML(text)}</button>
+            <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full text-left px-3 py-1.5 rounded-xl hover:bg-[#E8DEF8] dark:hover:bg-[#4A4458]">❐ 복제하기</button>
+            <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full text-left px-3 py-1.5 rounded-xl hover:bg-[#E8DEF8] dark:hover:bg-[#4A4458]">▣ 보관함 이동</button>
+            <button type="button" data-interactive="true" data-action="btn-pulse" class="w-full text-left px-3 py-1.5 rounded-xl text-rose-500 hover:bg-rose-500/10">✕ 삭제</button>
+          </div>
+        `
+      },
+      'pagination-bar': {
+        label: 'Pagination (페이지네이션)',
+        defaultText: '1',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 232,
+        defaultHeight: 46,
+        renderInner: () => `
+          <div class="w-full h-full rounded-full bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] px-3 flex items-center justify-between text-xs">
+            <span>‹</span>
+            <span class="w-6 h-6 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] font-bold flex items-center justify-center">1</span>
+            <span>2</span><span>3</span><span>4</span>
+            <span>›</span>
+          </div>
+        `
+      },
+      'sidebar-drawer': {
+        label: 'Sidebar (사이드바 드로어)',
+        defaultText: '내비게이션 메뉴',
+        defaultX: 40,
+        defaultY: 56,
+        defaultWidth: 228,
+        defaultHeight: 280,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-xl flex flex-col justify-between">
+            <p class="text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9] px-2">${escapeHTML(text)}</p>
+            <div class="space-y-1.5 my-auto">
+              ${['🏠 홈 피드', '🔍 탐색하기', '💬 메시지함', '🔔 알림 센터', '⚙ 환경설정'].map((item, i) => `<div class="px-3 py-2 rounded-full text-xs ${i === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458] font-bold' : 'text-[#49454F] dark:text-[#CAC4D0]'}">${item}</div>`).join('')}
+            </div>
+            <p class="text-[10px] text-[#79747E] px-2">v1.0.0 Studio</p>
+          </div>
+        `
+      },
+      'bottom-nav-bar': {
+        label: 'Tab Bar · 하단 (NavigationBar)',
+        defaultText: '홈',
+        defaultX: 40,
+        defaultY: 72,
+        defaultWidth: 320,
+        defaultHeight: 64,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] px-2 shadow-md grid grid-cols-4 items-center text-[10px]">
+            ${[
+              { ic: '🏠', label: text },
+              { ic: '🔍', label: '탐색' },
+              { ic: '🔔', label: '알림' },
+              { ic: '👤', label: '마이' }
+            ].map((t, idx) => `<button type="button" data-interactive="true" data-nav-tab="${idx}" class="bottom-nav-tab py-1.5 rounded-2xl flex flex-col items-center gap-0.5 ${idx === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458] font-bold' : ''}">
+              <span class="text-sm">${t.ic}</span><span>${escapeHTML(t.label)}</span>
+            </button>`).join('')}
+          </div>
+        `
+      },
+      'segmented-tabs': {
+        label: 'Tab Bar · 세그먼트 (SegmentedTab)',
+        defaultText: '전체',
+        defaultX: 48,
+        defaultY: 68,
+        defaultWidth: 264,
+        defaultHeight: 44,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-full bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E] dark:border-[#938F99] p-1 grid grid-cols-3 text-xs font-semibold">
+            ${[text, '진행중', '완료'].map((lbl, idx) => `<button type="button" data-interactive="true" data-seg-idx="${idx}" class="seg-tab-btn rounded-full flex items-center justify-center ${idx === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458]' : ''}">${escapeHTML(lbl)}</button>`).join('')}
+          </div>
+        `
+      },
+      'badge-chip': {
+        label: 'Badge (뱃지)',
+        defaultText: 'NEW 3',
+        defaultX: 64,
+        defaultY: 72,
+        defaultWidth: 96,
+        defaultHeight: 36,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-full bg-[#B3261E] dark:bg-[#F2B8B5] text-white dark:text-[#601410] text-xs font-bold flex items-center justify-center px-3 shadow">
+            <span class="truncate">${escapeHTML(text)}</span>
+          </div>
+        `
+      },
+      'comment-box': {
+        label: 'Comment (댓글)',
+        defaultText: '레이아웃 구성이 깔끔하네요!',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 276,
+        defaultHeight: 88,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-sm flex items-start gap-2.5">
+            <span class="w-8 h-8 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] flex items-center justify-center text-xs shrink-0">👤</span>
+            <div class="min-w-0">
+              <p class="text-[11px] font-bold text-[#1D1B20] dark:text-[#E6E0E9]">디자이너 Kim · 방금 전</p>
+              <p class="text-xs text-[#49454F] dark:text-[#CAC4D0] mt-0.5 line-clamp-2">${escapeHTML(text)}</p>
+            </div>
+          </div>
+        `
+      },
+      'feed-card': {
+        label: 'Feed (피드)',
+        defaultText: '새로운 프로토타입 업데이트',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 284,
+        defaultHeight: 196,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-md flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] flex items-center justify-center text-[11px]">👤</span>
+              <span class="text-xs font-bold truncate">${escapeHTML(text)}</span>
+            </div>
+            <div class="w-full h-20 rounded-2xl bg-[#E8DEF8]/60 dark:bg-[#4A4458]/50 flex items-center justify-center text-lg">🖼</div>
+            <div class="flex items-center justify-between text-[11px] text-[#49454F] dark:text-[#CAC4D0]">
+              <span>♥ 24</span><span>💬 5</span><span>🔗 공유</span>
+            </div>
+          </div>
+        `
+      },
+      'square-icon': {
+        label: 'Icon (사각 아이콘 버튼)',
+        defaultText: '★',
+        defaultX: 64,
+        defaultY: 72,
+        defaultWidth: 52,
+        defaultHeight: 52,
+        renderInner: (text) => `
+          <button type="button" data-interactive="true" data-action="toggle-square-icon" class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] shadow-sm flex items-center justify-center text-lg">
+            <span>${escapeHTML(text)}</span>
+          </button>
+        `
+      },
+      'loading-modal': {
+        label: 'Loader (로더 / 대기 모달)',
+        defaultText: '데이터를 불러오는 중...',
+        defaultX: 56,
+        defaultY: 72,
+        defaultWidth: 236,
+        defaultHeight: 112,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-lg flex flex-col items-center justify-center gap-2.5 text-center">
+            <div class="w-7 h-7 rounded-full border-2 border-[#6750A4] dark:border-[#D0BCFF] border-t-transparent animate-spin"></div>
+            <p class="text-xs font-medium text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</p>
+          </div>
+        `
+      },
+      'progress-indicator': {
+        label: 'Progress Bar (진행률 표시줄)',
+        defaultText: '업로드 진행률',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 256,
+        defaultHeight: 74,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-3.5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold">
+              <span>${escapeHTML(text)}</span>
+              <button type="button" data-interactive="true" data-action="step-progress" data-pct="60" class="text-[#6750A4] dark:text-[#D0BCFF] font-mono">60%</button>
+            </div>
+            <div class="w-full h-2 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] overflow-hidden">
+              <div class="progress-fill-bar h-full bg-[#6750A4] dark:bg-[#D0BCFF] transition-all" style="width: 60%;"></div>
+            </div>
+          </div>
+        `
+      },
+      'tag-chip': {
+        label: 'Tag (태그)',
+        defaultText: '#안드로이드UI',
+        defaultX: 60,
+        defaultY: 72,
+        defaultWidth: 132,
+        defaultHeight: 38,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-xl bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8] text-xs font-semibold flex items-center justify-center px-3">
+            <span class="truncate">${escapeHTML(text)}</span>
+          </div>
+        `
+      },
+      'tooltip-bubble': {
+        label: 'Tooltip (툴팁)',
+        defaultText: '여기를 눌러 작업을 시작하세요',
+        defaultX: 52,
+        defaultY: 68,
+        defaultWidth: 236,
+        defaultHeight: 48,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#313033] dark:bg-[#E6E0E9] text-[#F4EFF4] dark:text-[#313033] text-xs font-medium px-3.5 shadow-lg flex items-center justify-center">
+            <span class="truncate">${escapeHTML(text)}</span>
+          </div>
+        `
+      },
+      'snackbar': {
+        label: 'Snackbar / Toast (알림 배너)',
+        defaultText: '변경사항이 저장되었습니다.',
+        defaultX: 44,
+        defaultY: 72,
+        defaultWidth: 296,
+        defaultHeight: 50,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-2xl bg-[#313033] dark:bg-[#E6E0E9] text-[#F4EFF4] dark:text-[#313033] px-4 shadow-xl flex items-center justify-between gap-2 text-xs">
+            <span class="modal-status-text truncate">${escapeHTML(text)}</span>
+            <button type="button" data-interactive="true" data-action="undo-snack" class="font-bold text-[#D0BCFF] dark:text-[#6750A4] shrink-0">실행취소</button>
+          </div>
+        `
+      },
+      'card-container': {
+        label: 'Card (기본 카드)',
+        defaultText: '카드 타이틀',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 276,
+        defaultHeight: 148,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-md flex flex-col justify-between">
+            <div>
+              <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+              <p class="text-xs text-[#49454F] dark:text-[#CAC4D0] mt-1">관련 콘텐츠와 액션을 담는 기본 Material 3 카드입니다.</p>
+            </div>
+            <div class="flex justify-end">
+              <button type="button" data-interactive="true" data-action="btn-pulse" class="px-3.5 py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-[11px] font-bold">자세히</button>
+            </div>
+          </div>
+        `
+      },
+      'empty-state-card': {
+        label: 'Card · Empty State (빈 화면 카드)',
+        defaultText: '표시할 항목이 없습니다',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 276,
+        defaultHeight: 176,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-sm flex flex-col items-center justify-center text-center gap-2">
+            <span class="text-2xl">∅</span>
+            <p class="text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</p>
+            <p class="text-[11px] text-[#49454F] dark:text-[#CAC4D0]">새 항목을 추가하여 목록을 채워보세요.</p>
+          </div>
+        `
+      },
+      'empty-box': {
+        label: 'Frame · 점선 사각 박스',
+        defaultText: '배치 영역',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 240,
+        defaultHeight: 160,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl border-2 border-dashed border-[#79747E] dark:border-[#938F99] bg-[#F3EDF7]/30 dark:bg-[#211F26]/30 flex items-center justify-center text-xs font-medium text-[#49454F] dark:text-[#CAC4D0]">
+            <span>${escapeHTML(text)}</span>
+          </div>
+        `
+      },
+      'empty-solid-rect': {
+        label: 'Frame · 실선 사각 프레임',
+        defaultText: '컨테이너 프레임',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 240,
+        defaultHeight: 160,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl border border-[#CAC4D0] dark:border-[#49454F] bg-[#F3EDF7]/60 dark:bg-[#211F26]/60 flex items-center justify-center text-xs font-medium text-[#49454F] dark:text-[#CAC4D0]">
+            <span>${escapeHTML(text)}</span>
+          </div>
+        `
+      },
+      'device-frame': {
+        label: 'Frame · Android Screen (360×640)',
+        defaultText: 'Android Screen',
+        defaultX: 36,
+        defaultY: 44,
+        defaultWidth: 360,
+        defaultHeight: 640,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-[32px] bg-[#FEF7FF] dark:bg-[#141218] border-2 border-[#79747E] dark:border-[#938F99] shadow-xl flex flex-col justify-between p-4">
+            <div class="flex items-center justify-between text-[10px] text-[#49454F] dark:text-[#CAC4D0]">
+              <span>11:42</span>
+              <span class="font-semibold">${escapeHTML(text)}</span>
+              <span>5G 100%</span>
+            </div>
+            <div class="w-24 h-1 rounded-full bg-[#79747E]/50 mx-auto"></div>
+          </div>
+        `
+      },
+      'carousel-slider': {
+        label: 'Carousel (캐러셀)',
+        defaultText: '프로모션 배너 슬라이드',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 296,
+        defaultHeight: 148,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#E8DEF8] dark:bg-[#4A4458] p-4 shadow-md flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-[#1D192B] dark:text-[#E8DEF8]">${escapeHTML(text)}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/30">1 / 3</span>
+            </div>
+            <div class="flex justify-center gap-1.5">
+              <span class="w-4 h-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF]"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-[#6750A4]/30 dark:bg-[#D0BCFF]/30"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-[#6750A4]/30 dark:bg-[#D0BCFF]/30"></span>
+            </div>
+          </div>
+        `
+      },
+      'alert-dialog': {
+        label: 'Modal · 기본 AlertDialog',
+        defaultText: '변경사항을 적용할까요?',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 164,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-5 shadow-2xl flex flex-col justify-between">
+            <div>
+              <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+              <p class="modal-status-text text-xs text-[#49454F] dark:text-[#CAC4D0] mt-1.5">확인 버튼을 누르면 설정이 즉시 반영됩니다.</p>
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" data-interactive="true" data-action="cancel" class="px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#6750A4] dark:text-[#D0BCFF]">취소</button>
+              <button type="button" data-interactive="true" data-action="confirm" class="px-4 py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">확인</button>
+            </div>
+          </div>
+        `
+      },
+      'center-text-modal': {
+        label: 'Modal · 중앙 텍스트 모달',
+        defaultText: '안내 메시지를 입력하세요',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 268,
+        defaultHeight: 148,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-5 shadow-xl flex items-center justify-center text-center">
+            <p class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</p>
+          </div>
+        `
+      },
+      'bottom-sheet': {
+        label: 'Modal · ModalBottomSheet',
+        defaultText: '상세 옵션 선택',
+        defaultX: 40,
+        defaultY: 72,
+        defaultWidth: 320,
+        defaultHeight: 200,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-t-3xl rounded-b-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between">
+            <div class="w-9 h-1 rounded-full bg-[#79747E]/50 mx-auto"></div>
+            <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9] mt-1">${escapeHTML(text)}</h4>
+            <p class="modal-status-text text-xs text-[#49454F] dark:text-[#CAC4D0]">화면 하단에서 올라오는 바텀시트 컨테이너입니다.</p>
+            <button type="button" data-interactive="true" data-action="confirm" class="w-full py-2 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">선택 완료</button>
+          </div>
+        `
+      },
+      'fullscreen-dialog': {
+        label: 'Modal · FullScreenDialog',
+        defaultText: '새 일정 등록',
+        defaultX: 40,
+        defaultY: 52,
+        defaultWidth: 320,
+        defaultHeight: 340,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#FEF7FF] dark:bg-[#141218] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between">
+            <div class="flex items-center justify-between pb-2.5 border-b border-[#CAC4D0]/60 dark:border-[#49454F]/60">
+              <div class="flex items-center gap-2">
+                <button type="button" data-interactive="true" data-action="close-msg" class="text-xs font-bold">✕</button>
+                <span class="text-xs font-bold">${escapeHTML(text)}</span>
+              </div>
+              <button type="button" data-interactive="true" data-action="save-msg" class="px-3 py-1 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-[11px] font-bold">저장</button>
+            </div>
+            <div class="my-auto text-center text-xs text-[#49454F] dark:text-[#CAC4D0]">
+              <p class="modal-status-text">전체 화면 편집 다이얼로그 본문 영역</p>
+            </div>
+            <div class="text-[10px] text-center text-[#79747E]">FullScreenDialog</div>
+          </div>
+        `
+      },
+      'warning-modal': {
+        label: 'Modal · 경고 / 삭제 확인 모달',
+        defaultText: '항목을 영구 삭제할까요?',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 168,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#B3261E]/40 dark:border-[#F2B8B5]/40 p-5 shadow-2xl flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-1.5 text-[#B3261E] dark:text-[#F2B8B5] text-sm font-bold">
+                <span>⚠</span><span>${escapeHTML(text)}</span>
+              </div>
+              <p class="modal-status-text text-xs text-[#49454F] dark:text-[#CAC4D0] mt-1.5">삭제된 데이터는 다시 복구할 수 없습니다.</p>
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" data-interactive="true" data-action="cancel" class="px-3.5 py-1.5 rounded-full text-xs font-semibold">취소</button>
+              <button type="button" data-interactive="true" data-action="delete-confirm" class="px-4 py-1.5 rounded-full bg-[#B3261E] dark:bg-[#F2B8B5] text-white dark:text-[#601410] text-xs font-bold">삭제</button>
+            </div>
+          </div>
+        `
+      },
+      'selection-modal': {
+        label: 'Modal · 단일 선택 모달',
+        defaultText: '알림 사운드 선택',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 272,
+        defaultHeight: 196,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between">
+            <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+            <div class="space-y-1">
+              ${['A', 'B', 'C'].map((opt, idx) => `<button type="button" data-interactive="true" data-radio-opt="${opt}" class="radio-opt-btn w-full text-left px-3 py-1.5 rounded-xl text-xs ${idx === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458] font-medium' : ''}">${idx === 0 ? '◉' : '○'} 선택 옵션 ${opt}</button>`).join('')}
+            </div>
+            <div class="flex justify-end">
+              <button type="button" data-interactive="true" data-action="confirm" class="px-4 py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">확인</button>
+            </div>
+          </div>
+        `
+      },
+      'input-dialog': {
+        label: 'Modal · 텍스트 입력 팝업',
+        defaultText: '새 폴더 이름 입력',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 176,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between">
+            <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+            <input type="text" data-interactive="true" placeholder="여기에 텍스트 입력" class="modal-inline-input w-full px-3 py-2 rounded-xl bg-white/80 dark:bg-[#141218]/80 border border-[#79747E] dark:border-[#938F99] text-xs" />
+            <div class="flex items-center justify-between">
+              <span class="modal-status-text text-[10px] text-[#49454F] dark:text-[#CAC4D0] truncate"></span>
+              <div class="flex gap-1.5">
+                <button type="button" data-interactive="true" data-action="cancel" class="px-3 py-1.5 rounded-full text-xs font-semibold">취소</button>
+                <button type="button" data-interactive="true" data-action="submit-input" class="px-3.5 py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">저장</button>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      'dropdown-modal': {
+        label: 'Modal · 드롭다운 폼 모달',
+        defaultText: '역할 권한 설정',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 184,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between">
+            <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+            <div class="relative">
+              <button type="button" data-interactive="true" data-action="toggle-m3-select" class="w-full px-3 py-2 rounded-xl bg-white/80 dark:bg-[#141218]/80 border border-[#79747E] text-xs flex items-center justify-between">
+                <span class="m3-select-value">편집자 (Editor)</span>
+                <span class="m3-select-arrow text-[10px]">▼</span>
+              </button>
+              <div class="m3-select-menu hidden absolute left-0 right-0 top-full mt-1 rounded-xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] shadow-lg p-1 z-20">
+                ${['편집자 (Editor)', '관리자 (Admin)', '뷰어 (Viewer)'].map((opt, idx) => `<button type="button" data-interactive="true" data-m3-option="${opt}" class="m3-opt-item w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs ${idx === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458] font-semibold' : ''}"><span>${opt}</span><span class="m3-check ${idx === 0 ? '' : 'hidden'}">✓</span></button>`).join('')}
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <button type="button" data-interactive="true" data-action="confirm" class="px-4 py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">적용</button>
+            </div>
+          </div>
+        `
+      },
+      'share-sheet-modal': {
+        label: 'Modal · 공유 액션 시트',
+        defaultText: '공유하기',
+        defaultX: 44,
+        defaultY: 68,
+        defaultWidth: 300,
+        defaultHeight: 176,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+              <span class="modal-status-text text-[10px] text-[#6750A4] dark:text-[#D0BCFF]"></span>
+            </div>
+            <div class="grid grid-cols-4 gap-2 text-center text-[10px]">
+              ${[
+                { ic: '💬', name: '메시지' },
+                { ic: '✉', name: '이메일' },
+                { ic: '🔗', name: '링크복사' },
+                { ic: '☁', name: '드라이브' }
+              ].map((app) => `<button type="button" data-interactive="true" data-share-app="${app.name}" class="p-2 rounded-2xl bg-[#E8DEF8]/60 dark:bg-[#4A4458]/60 flex flex-col items-center gap-1">
+                <span class="text-base">${app.ic}</span><span>${app.name}</span>
+              </button>`).join('')}
+            </div>
+          </div>
+        `
+      },
+      'permission-modal': {
+        label: 'Modal · 권한 허용 요청 모달',
+        defaultText: '위치 정보 접근 권한 허용',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 184,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between text-center">
+            <div class="space-y-1">
+              <div class="text-xl">🛡️</div>
+              <h4 class="text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+              <p class="modal-status-text text-[11px] text-[#49454F] dark:text-[#CAC4D0]">주변 매장 검색을 위해 권한이 필요합니다.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" data-interactive="true" data-action="deny-perm" class="py-1.5 rounded-full bg-[#E8DEF8] dark:bg-[#4A4458] text-xs font-semibold">허용 안 함</button>
+              <button type="button" data-interactive="true" data-action="allow-perm" class="py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">앱 사용 중 허용</button>
+            </div>
+          </div>
+        `
+      },
+      'profile-account-modal': {
+        label: 'Modal · 계정 전환 / 프로필',
+        defaultText: '계정 선택',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 184,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between">
+            <h4 class="text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9] px-1">${escapeHTML(text)}</h4>
+            <div class="space-y-1.5">
+              ${['디자인팀 워크스페이스', '개인 프로토타입 계정'].map((acc, i) => `<button type="button" data-interactive="true" data-account-name="${acc}" class="account-row-btn w-full flex items-center justify-between px-3 py-2 rounded-2xl text-xs ${i === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458] font-semibold' : 'bg-[#F3EDF7] dark:bg-[#211F26]'}">
+                <span class="truncate">👤 ${acc}</span>
+                <span class="account-badge text-[10px] ${i === 0 ? '' : 'hidden'}">✓</span>
+              </button>`).join('')}
+            </div>
+          </div>
+        `
+      },
+      'rating-review-modal': {
+        label: 'Modal · 별점 평가 / 피드백',
+        defaultText: '앱 사용 경험 평가',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 280,
+        defaultHeight: 176,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between text-center">
+            <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+            <div class="flex justify-center gap-2 text-xl">
+              ${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-interactive="true" data-star="${n}" class="star-rate-btn ${n <= 4 ? 'text-[#6750A4] dark:text-[#D0BCFF]' : 'text-[#79747E]/50 dark:text-[#938F99]/50'}">★</button>`).join('')}
+            </div>
+            <p class="modal-status-text text-[11px] text-[#49454F] dark:text-[#CAC4D0]">별점을 눌러 만족도를 선택해 주세요</p>
+          </div>
+        `
+      },
+      'onboarding-coach-modal': {
+        label: 'Modal · 온보딩 툴팁 모달',
+        defaultText: '기능 안내 가이드',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 276,
+        defaultHeight: 164,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] p-4 shadow-2xl flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold">${escapeHTML(text)}</h4>
+              <span class="step-indicator-text text-[10px] font-mono">1 / 3</span>
+            </div>
+            <p class="modal-status-text text-xs opacity-90">단계 1 안내 가이드 메시지</p>
+            <div class="flex justify-end">
+              <button type="button" data-interactive="true" data-action="next-guide-step" data-step="1" class="px-3.5 py-1 rounded-full bg-white/20 dark:bg-black/15 text-xs font-bold">다음 →</button>
+            </div>
+          </div>
+        `
+      },
+      'filter-sort-sheet': {
+        label: 'Modal · 필터 / 정렬 바텀시트',
+        defaultText: '조건 필터',
+        defaultX: 44,
+        defaultY: 68,
+        defaultWidth: 296,
+        defaultHeight: 176,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between">
+            <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+            <div class="flex flex-wrap gap-1.5">
+              ${['무료배송', '당일발송', '할인중', '인기상품'].map((chip, i) => `<button type="button" data-interactive="true" data-filter-chip="${i === 0}" class="filter-chip-btn px-3 py-1 rounded-full text-xs ${i === 0 ? 'bg-[#E8DEF8] dark:bg-[#4A4458] font-semibold' : 'bg-[#F3EDF7] dark:bg-[#211F26] border border-[#79747E]'}">${chip}</button>`).join('')}
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" data-interactive="true" data-action="reset-filters" class="px-3 py-1.5 rounded-full text-xs font-semibold">초기화</button>
+              <button type="button" data-interactive="true" data-action="confirm" class="px-4 py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">적용</button>
+            </div>
+          </div>
+        `
+      },
+      'otp-pin-modal': {
+        label: 'Modal · 인증번호 / PIN 입력',
+        defaultText: '보안 인증번호 4자리',
+        defaultX: 48,
+        defaultY: 64,
+        defaultWidth: 276,
+        defaultHeight: 176,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between text-center">
+            <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+            <div class="grid grid-cols-4 gap-2 px-3">
+              ${['•', '•', '•', '•'].map((d) => `<div class="h-10 rounded-xl bg-white/80 dark:bg-[#141218]/80 border border-[#79747E] flex items-center justify-center font-bold">${d}</div>`).join('')}
+            </div>
+            <button type="button" data-interactive="true" data-action="confirm" class="w-full py-1.5 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">인증 확인</button>
+          </div>
+        `
+      },
+      'payment-summary-sheet': {
+        label: 'Modal · 결제 확인 / 영수증',
+        defaultText: '결제 정보 확인',
+        defaultX: 44,
+        defaultY: 68,
+        defaultWidth: 296,
+        defaultHeight: 192,
+        renderInner: (text) => `
+          <div class="w-full h-full rounded-3xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#CAC4D0] dark:border-[#49454F] p-4 shadow-2xl flex flex-col justify-between">
+            <h4 class="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">${escapeHTML(text)}</h4>
+            <div class="space-y-1 text-xs">
+              <div class="flex justify-between text-[#49454F] dark:text-[#CAC4D0]"><span>결제 수단</span><span>신용카드 •••• 1234</span></div>
+              <div class="flex justify-between font-bold text-sm pt-1 border-t border-[#CAC4D0]/60 dark:border-[#49454F]/60"><span>총 결제금액</span><span class="text-[#6750A4] dark:text-[#D0BCFF]">29,000원</span></div>
+            </div>
+            <button type="button" data-interactive="true" data-action="confirm" class="w-full py-2 rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] text-xs font-bold">결제 승인</button>
+          </div>
+        `
+      }
+    };
+
     // 4개 탭별 중복 없는 UI · 모달 카테고리 데이터
     const MODAL_CATEGORY_ITEMS = {
       input: [
@@ -2908,12 +3094,16 @@
             </div>
           </div>
           ${currentProject.canvases.length > 1 ? `
-            <button type="button" class="del-canvas-btn p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition cursor-pointer" title="캔버스 삭제">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button" data-canvas-move="up" ${idx === 0 ? 'disabled' : ''} class="move-canvas-up-btn p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-700 disabled:opacity-30 transition cursor-pointer" title="순서 위로">↑</button>
+              <button type="button" data-canvas-move="down" ${idx === currentProject.canvases.length - 1 ? 'disabled' : ''} class="move-canvas-down-btn p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-700 disabled:opacity-30 transition cursor-pointer" title="순서 아래로">↓</button>
+              <button type="button" class="del-canvas-btn p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition cursor-pointer" title="캔버스 삭제">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
           ` : ''}
         `;
 
@@ -2923,6 +3113,36 @@
             slideSwitchCanvas(idx, idx > activeCanvasIndex ? 'next' : 'prev');
           }
         });
+
+        const moveCanvasOrder = (targetIdx) => {
+          if (targetIdx < 0 || targetIdx >= currentProject.canvases.length) return;
+          const activeCanvasObj = currentProject.canvases[activeCanvasIndex];
+          const [moved] = currentProject.canvases.splice(idx, 1);
+          currentProject.canvases.splice(targetIdx, 0, moved);
+          activeCanvasIndex = currentProject.canvases.indexOf(activeCanvasObj);
+          if (activeCanvasIndex < 0) activeCanvasIndex = 0;
+          currentProject.modals = currentProject.canvases[activeCanvasIndex].modals;
+          saveProjects();
+          updateCanvasNavButtons();
+          renderWorkspaceLayers();
+          renderCanvasListPopup();
+        };
+
+        const upBtn = row.querySelector('.move-canvas-up-btn');
+        if (upBtn) {
+          upBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            moveCanvasOrder(idx - 1);
+          });
+        }
+
+        const downBtn = row.querySelector('.move-canvas-down-btn');
+        if (downBtn) {
+          downBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            moveCanvasOrder(idx + 1);
+          });
+        }
 
         const delBtn = row.querySelector('.del-canvas-btn');
         if (delBtn) {
@@ -3120,6 +3340,34 @@
     }
 
     workspaceBackBtn.addEventListener('click', closeProjectWorkspace);
+
+    workspaceUndoBtn.addEventListener('click', () => {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      if (!currentProject || undoStack.length === 0) return;
+      redoStack.push(JSON.stringify(currentProject.modals || []));
+      currentProject.modals = JSON.parse(undoStack.pop());
+      if (Array.isArray(currentProject.canvases) && currentProject.canvases[activeCanvasIndex]) {
+        currentProject.canvases[activeCanvasIndex].modals = currentProject.modals;
+      }
+      updateHistoryButtons();
+      saveProjects();
+      renderWorkspaceLayers();
+      renderProjects();
+    });
+
+    workspaceRedoBtn.addEventListener('click', () => {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      if (!currentProject || redoStack.length === 0) return;
+      undoStack.push(JSON.stringify(currentProject.modals || []));
+      currentProject.modals = JSON.parse(redoStack.pop());
+      if (Array.isArray(currentProject.canvases) && currentProject.canvases[activeCanvasIndex]) {
+        currentProject.canvases[activeCanvasIndex].modals = currentProject.modals;
+      }
+      updateHistoryButtons();
+      saveProjects();
+      renderWorkspaceLayers();
+      renderProjects();
+    });
 
     /**
      * 작업 캔버스 스냅(자석) 및 강조 색 설정 팝업 열기 / 닫기
@@ -3436,6 +3684,7 @@
         el.style.height = `${itemHeight}px`;
         el.style.zIndex = String(10 + index);
         el.innerHTML = template.renderInner(displayText);
+        applyCustomTextsAndIconsToElement(el, item);
         stage.appendChild(el);
       });
 
