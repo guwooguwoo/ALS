@@ -487,6 +487,13 @@
           </button>
         </div>
 
+        <div id="exportImagePreviewBox" class="hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 max-h-44 flex items-center justify-center">
+            <img id="exportImagePreviewImg" src="" alt="저장된 캔버스 미리보기" class="max-h-44 w-auto object-contain" />
+          </div>
+          <p class="text-[10px] text-center text-slate-500 dark:text-slate-400">다운로드 폴더에 저장되었으며, 앱 내에서는 위 이미지를 길게 눌러 갤러리에 저장할 수 있습니다.</p>
+        </div>
+
         <p id="exportImageStatusText" class="hidden mt-3 text-[11px] font-semibold text-center text-indigo-600 dark:text-emerald-400"></p>
       </div>
     </div>
@@ -1106,6 +1113,8 @@
     const exportSingleCanvasBtn = document.getElementById('exportSingleCanvasBtn');
     const exportAllCanvasesBtn = document.getElementById('exportAllCanvasesBtn');
     const exportAllCanvasesDesc = document.getElementById('exportAllCanvasesDesc');
+    const exportImagePreviewBox = document.getElementById('exportImagePreviewBox');
+    const exportImagePreviewImg = document.getElementById('exportImagePreviewImg');
     const exportImageStatusText = document.getElementById('exportImageStatusText');
     const layerPopupOverlay = document.getElementById('layerPopupOverlay');
     const closeLayerPopupBtn = document.getElementById('closeLayerPopupBtn');
@@ -5070,6 +5079,7 @@
         const currentProject = projects.find((p) => p.id === activeProjectId);
         const total = currentProject && Array.isArray(currentProject.canvases) ? currentProject.canvases.length : 1;
         exportAllCanvasesDesc.textContent = `프로젝트의 전체 ${total}개 캔버스 순차 저장`;
+        exportImagePreviewBox.classList.add('hidden');
         exportImageStatusText.classList.add('hidden');
         exportImagePopupOverlay.classList.remove('hidden');
         exportImagePopupOverlay.classList.add('flex');
@@ -5079,13 +5089,35 @@
       }
     }
 
-    function triggerDownloadDataUrl(dataUrl, filename) {
+    async function saveOrShareCanvasPng(dataUrl, filename) {
+      // 1) 모바일/앱에서 시스템 공유 시트(갤러리 저장, 카톡 전송 등) 지원 시 우선 시도
+      if (navigator.share) {
+        try {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          const file = new File([blob], filename, { type: 'image/png' });
+          if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: filename
+            });
+            return 'shared';
+          }
+        } catch (err) {
+          if (err && err.name === 'AbortError') return 'cancelled';
+        }
+      }
+
+      // 2) 브라우저 기본 다운로드(내 파일 > Download 폴더) 실행
       const link = document.createElement('a');
       link.href = dataUrl;
       link.download = filename;
+      link.target = '_blank';
+      link.rel = 'noopener';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      setTimeout(() => link.remove(), 1500);
+      return 'downloaded';
     }
 
     /**
@@ -5163,11 +5195,18 @@
       exportImageStatusText.classList.remove('hidden');
 
       const safeTitle = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
+      const filename = `${safeTitle}_canvas_${activeCanvasIndex + 1}.png`;
       const dataUrl = await capturePureCanvasImage(currentProject.modals);
-      triggerDownloadDataUrl(dataUrl, `${safeTitle}_canvas_${activeCanvasIndex + 1}.png`);
 
-      exportImageStatusText.textContent = `캔버스 ${activeCanvasIndex + 1} 저장이 완료되었습니다.`;
-      setTimeout(() => setExportImagePopupState(false), 750);
+      exportImagePreviewImg.src = dataUrl;
+      exportImagePreviewBox.classList.remove('hidden');
+
+      const result = await saveOrShareCanvasPng(dataUrl, filename);
+      if (result === 'shared') {
+        exportImageStatusText.textContent = `캔버스 ${activeCanvasIndex + 1} 공유/저장 창이 열렸습니다.`;
+      } else {
+        exportImageStatusText.textContent = `다운로드 폴더(${filename})로 저장을 요청했습니다.`;
+      }
     });
 
     exportAllCanvasesBtn.addEventListener('click', async () => {
@@ -5177,15 +5216,56 @@
       const safeTitle = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
 
       exportImageStatusText.classList.remove('hidden');
+      const filesToShare = [];
+      let lastDataUrl = '';
+
       for (let i = 0; i < canvases.length; i++) {
-        exportImageStatusText.textContent = `전체 캔버스 저장 중 (${i + 1} / ${canvases.length})...`;
+        exportImageStatusText.textContent = `전체 캔버스 생성 중 (${i + 1} / ${canvases.length})...`;
         const dataUrl = await capturePureCanvasImage(canvases[i].modals);
-        triggerDownloadDataUrl(dataUrl, `${safeTitle}_canvas_${i + 1}.png`);
+        lastDataUrl = dataUrl;
+        const filename = `${safeTitle}_canvas_${i + 1}.png`;
+        if (navigator.share) {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          filesToShare.push(new File([blob], filename, { type: 'image/png' }));
+        } else {
+          await saveOrShareCanvasPng(dataUrl, filename);
+          await new Promise((resolve) => setTimeout(resolve, 180));
+        }
+      }
+
+      if (lastDataUrl) {
+        exportImagePreviewImg.src = lastDataUrl;
+        exportImagePreviewBox.classList.remove('hidden');
+      }
+
+      if (filesToShare.length > 0 && navigator.share) {
+        try {
+          if (!navigator.canShare || navigator.canShare({ files: filesToShare })) {
+            await navigator.share({
+              files: filesToShare,
+              title: `${currentProject.name} 전체 캔버스`
+            });
+            exportImageStatusText.textContent = `총 ${canvases.length}개 캔버스 이미지 공유 창이 열렸습니다.`;
+            return;
+          }
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+        }
+      }
+
+      for (let i = 0; i < canvases.length; i++) {
+        const dataUrl = await capturePureCanvasImage(canvases[i].modals);
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `${safeTitle}_canvas_${i + 1}.png`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
         await new Promise((resolve) => setTimeout(resolve, 180));
       }
 
-      exportImageStatusText.textContent = `총 ${canvases.length}개 캔버스 저장이 완료되었습니다.`;
-      setTimeout(() => setExportImagePopupState(false), 850);
+      exportImageStatusText.textContent = `총 ${canvases.length}개 캔버스가 다운로드 폴더로 저장 요청되었습니다.`;
     });
 
     workspaceAddBtn.addEventListener('click', (e) => {
