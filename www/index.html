@@ -6,6 +6,7 @@
   <title>Android Layout & Modal Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
@@ -783,7 +784,7 @@
           <div class="flex items-center justify-between gap-2">
             <div>
               <p class="text-xs font-semibold text-slate-800 dark:text-slate-100">프로젝트 데이터 백업</p>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400">JSON 파일 또는 텍스트로 백업·복원합니다.</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">ZIP 압축 파일(JSON 포함) 또는 텍스트로 백업·복원합니다.</p>
             </div>
             <button
               type="button"
@@ -804,7 +805,7 @@
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              백업 저장
+              ZIP 백업
             </button>
             <button
               type="button"
@@ -843,7 +844,7 @@
               </button>
             </div>
           </div>
-          <input type="file" id="restoreFileInput" accept=".json,application/json,text/plain,*/*" class="hidden" />
+          <input type="file" id="restoreFileInput" accept=".zip,.json,application/zip,application/json,text/plain,*/*" class="hidden" />
           <p id="backupStatusMsg" class="hidden text-[11px] font-medium pt-0.5"></p>
         </div>
       </div>
@@ -1382,46 +1383,40 @@
         modalDynamicIconsContainer.appendChild(iconHeader);
 
         iconSlots.forEach((slot, idx) => {
-          const currentIcon = typeof savedIcons[idx] === 'string' && savedIcons[idx] ? savedIcons[idx] : slot.defaultVal;
-          const row = document.createElement('div');
-          row.className = 'p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/80 space-y-2';
-          row.innerHTML = `
+          const currentIcon = typeof savedIcons[idx] === 'string' && savedIcons[idx] !== '' ? savedIcons[idx] : slot.defaultVal;
+          const wrap = document.createElement('div');
+          wrap.className = 'p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/80 space-y-1.5';
+          wrap.innerHTML = `
             <div class="flex items-center justify-between gap-2">
-              <span class="text-[11px] font-medium text-slate-600 dark:text-slate-300">아이콘 ${idx + 1}</span>
+              <label class="text-[10px] font-medium text-slate-500 dark:text-slate-400">아이콘 ${idx + 1}</label>
               <input
                 type="text"
                 data-edit-icon-idx="${idx}"
                 value="${escapeHTML(currentIcon)}"
-                maxlength="6"
-                placeholder="이모지/기호"
-                class="modal-part-icon-input w-20 px-2.5 py-1 text-center text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400"
+                maxlength="4"
+                class="modal-part-icon-input w-16 px-2 py-1 text-center text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:border-slate-800 dark:focus:border-emerald-400"
               />
             </div>
             <div class="flex flex-wrap gap-1">
-              ${ICON_PRESET_CHOICES.map((ic) => `<button type="button" data-pick-icon-for="${idx}" data-icon-char="${escapeHTML(ic)}" class="icon-preset-chip w-6 h-6 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 text-xs flex items-center justify-center cursor-pointer">${escapeHTML(ic)}</button>`).join('')}
+              ${ICON_PRESET_CHOICES.map((ic) => `<button type="button" data-pick-icon-idx="${idx}" data-icon-val="${escapeHTML(ic)}" class="icon-preset-pick-btn w-6 h-6 rounded-md bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 text-xs flex items-center justify-center cursor-pointer">${escapeHTML(ic)}</button>`).join('')}
             </div>
           `;
-          modalDynamicIconsContainer.appendChild(row);
+          modalDynamicIconsContainer.appendChild(wrap);
         });
 
-        modalDynamicIconsContainer.querySelectorAll('.icon-preset-chip').forEach((chipBtn) => {
-          chipBtn.addEventListener('click', () => {
-            const targetIdx = chipBtn.dataset.pickIconFor;
+        modalDynamicIconsContainer.querySelectorAll('.icon-preset-pick-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const targetIdx = btn.dataset.pickIconIdx;
             const targetInput = modalDynamicIconsContainer.querySelector(`.modal-part-icon-input[data-edit-icon-idx="${targetIdx}"]`);
-            if (targetInput) {
-              targetInput.value = chipBtn.dataset.iconChar || '';
-            }
+            if (targetInput) targetInput.value = btn.dataset.iconVal || '';
           });
         });
       }
 
       editModalTextOverlay.classList.remove('hidden');
       editModalTextOverlay.classList.add('flex');
-      setTimeout(() => {
-        const firstTextInput = modalDynamicTextsContainer.querySelector('.modal-part-text-input') || modalLabelInput;
-        firstTextInput.focus();
-        firstTextInput.select();
-      }, 30);
+      setTimeout(() => modalLabelInput.focus(), 30);
     }
 
     function closeModalTextEditor() {
@@ -1436,54 +1431,152 @@
     });
 
     saveModalTextBtn.addEventListener('click', () => {
+      if (!editingModalItemId) return;
       const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (currentProject && editingModalItemId) {
-        const item = currentProject.modals.find((m) => m.id === editingModalItemId);
-        if (item) {
-          const beforeSnapshot = JSON.stringify(currentProject.modals || []);
-          const newLabel = modalLabelInput.value.trim();
-          if (newLabel) item.label = newLabel;
+      if (!currentProject) return;
+      const item = currentProject.modals.find((m) => m.id === editingModalItemId);
+      if (!item) return;
 
-          if (ORIENTABLE_TYPES.has(item.type)) {
-            const prevOrient = item.orientation || getDefaultOrientation(item.type);
-            if (prevOrient !== editingModalOrientation) {
-              const tpl = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
-              const curW = typeof item.width === 'number' ? item.width : tpl.defaultWidth;
-              const curH = typeof item.height === 'number' ? item.height : tpl.defaultHeight;
-              item.width = curH;
-              item.height = curW;
-            }
-            item.orientation = editingModalOrientation;
-          }
+      const beforeSnapshot = JSON.stringify(currentProject.modals || []);
 
-          const newTexts = [];
-          modalDynamicTextsContainer.querySelectorAll('.modal-part-text-input').forEach((inp) => {
-            newTexts.push(inp.value);
-          });
-          item.customTexts = newTexts;
-          if (newTexts.length > 0) {
-            item.text = newTexts[0];
-          }
-
-          const newIcons = [];
-          modalDynamicIconsContainer.querySelectorAll('.modal-part-icon-input').forEach((inp) => {
-            newIcons.push(inp.value.trim());
-          });
-          item.customIcons = newIcons;
-
-          pushUndoSnapshot(beforeSnapshot);
-          saveProjects();
-          renderWorkspaceLayers();
-          if (isLayerPopupOpen) renderLayerPopupList();
+      if (ORIENTABLE_TYPES.has(item.type)) {
+        const prevOrient = item.orientation || getDefaultOrientation(item.type);
+        const nextOrient = editingModalOrientation || prevOrient;
+        if (prevOrient !== nextOrient) {
+          item.orientation = nextOrient;
+          const template = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
+          const curW = typeof item.width === 'number' ? item.width : template.defaultWidth;
+          const curH = typeof item.height === 'number' ? item.height : template.defaultHeight;
+          item.width = curH;
+          item.height = curW;
         }
       }
+
+      const nextLabel = modalLabelInput.value.trim();
+      if (nextLabel) {
+        item.label = nextLabel;
+      }
+
+      const textInputs = Array.from(modalDynamicTextsContainer.querySelectorAll('.modal-part-text-input'));
+      if (textInputs.length > 0) {
+        item.customTexts = textInputs.map((inp) => inp.value);
+        item.text = textInputs[0].value;
+      }
+
+      const iconInputs = Array.from(modalDynamicIconsContainer.querySelectorAll('.modal-part-icon-input'));
+      if (iconInputs.length > 0) {
+        item.customIcons = iconInputs.map((inp) => inp.value.trim());
+      }
+
+      pushUndoSnapshot(beforeSnapshot);
+      saveProjects();
+      renderWorkspaceLayers();
       closeModalTextEditor();
     });
+    // 프로젝트 ZIP 백업 내보내기 (projects.json + 프로젝트별 개별 JSON 포함)
+    backupProjectsBtn.addEventListener('click', async () => {
+      try {
+        const jsonStr = buildBackupJsonString();
+        const dateStamp = new Date().toISOString().slice(0, 10);
+        backupJsonTextarea.value = jsonStr;
 
-    editModalTextOverlay.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        saveModalTextBtn.click();
+        if (typeof JSZip === 'undefined') {
+          throw new Error('JSZip 라이브러리를 불러오지 못했습니다.');
+        }
+
+        const zip = new JSZip();
+        zip.file('projects.json', jsonStr);
+
+        const folder = zip.folder('projects');
+        if (folder && Array.isArray(projects)) {
+          projects.forEach((proj, idx) => {
+            const safeName = (proj.name || `project_${idx + 1}`).replace(/[\\/:*?"<>|]/g, '_');
+            folder.file(`${idx + 1}_${safeName}.json`, JSON.stringify(proj, null, 2));
+          });
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        const filename = `android-layout-studio-backup-${dateStamp}.zip`;
+
+        // 1) 모바일 환경에서 Web Share API 파일 공유 우선 시도
+        const isMobileUa = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+        if (isMobileUa && navigator.canShare && navigator.share) {
+          try {
+            const file = new File([zipBlob], filename, { type: 'application/zip' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: 'Android Layout & Modal Studio ZIP 백업'
+              });
+              showBackupMessage(`총 ${projects.length}개 프로젝트 ZIP 백업 파일이 공유/저장되었습니다.`);
+              return;
+            }
+          } catch (shareErr) {
+            if (shareErr && shareErr.name === 'AbortError') return;
+          }
+        }
+
+        // 2) Blob URL 기반 표준 ZIP 파일 다운로드
+        const blobUrl = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        a.rel = 'noopener';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          a.remove();
+          URL.revokeObjectURL(blobUrl);
+        }, 5000);
+
+        showBackupMessage(`총 ${projects.length}개 프로젝트가 ZIP 파일(${filename})로 저장되었습니다.`);
+      } catch (err) {
+        textBackupBox.classList.remove('hidden');
+        backupJsonTextarea.value = buildBackupJsonString();
+        showBackupMessage('ZIP 파일 다운로드가 제한된 환경입니다. 아래 JSON 텍스트를 복사해 백업해 주세요.', true);
+      }
+    });
+
+    // 프로젝트 ZIP 또는 JSON 백업 불러오기
+    restoreProjectsBtn.addEventListener('click', () => {
+      restoreFileInput.value = '';
+      restoreFileInput.click();
+    });
+
+    restoreFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      try {
+        const isZipFile = file.name.toLowerCase().endsWith('.zip') || file.type === 'application/zip' || file.type === 'application/x-zip-compressed';
+        if (isZipFile && typeof JSZip !== 'undefined') {
+          const arrayBuffer = await file.arrayBuffer();
+          const zip = await JSZip.loadAsync(arrayBuffer);
+          const mainEntry = zip.file('projects.json') || zip.file(/\.json$/i)[0];
+          if (!mainEntry) {
+            showBackupMessage('ZIP 파일 내부에 프로젝트 JSON 데이터가 없습니다.', true);
+            return;
+          }
+          const rawJson = await mainEntry.async('string');
+          applyImportedJsonText(rawJson);
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            applyImportedJsonText(event.target.result);
+          } catch (err) {
+            showBackupMessage('유효하지 않은 백업 파일입니다.', true);
+          }
+        };
+        reader.onerror = () => {
+          showBackupMessage('파일을 읽는 중 오류가 발생했습니다.', true);
+        };
+        reader.readAsText(file, 'UTF-8');
+      } catch (err) {
+        showBackupMessage('ZIP/JSON 백업 파일을 불러오는 중 오류가 발생했습니다.', true);
       }
     });
 
@@ -5379,11 +5472,11 @@
       try {
         applyImportedJsonText(rawText);
       } catch (err) {
-        showBackupMessage('유효하지 않은 JSON 데이터 형식입니다.', true);
+        showBackupMessage('JSON 형식이 올바르지 않습니다. 백업 데이터를 다시 확인해 주세요.', true);
       }
     });
 
-    // 프로젝트 JSON 백업 내보내기 (모바일 WebView · data URI · Share API 대응)
+    // 프로젝트 JSON 백업 내보내기 (Blob URL · Web Share API · 텍스트 백업 폴백 대응)
     backupProjectsBtn.addEventListener('click', async () => {
       try {
         const jsonStr = buildBackupJsonString();
@@ -5392,17 +5485,7 @@
 
         backupJsonTextarea.value = jsonStr;
 
-        // 1) Android WebView 등에서 blob: URL이 차단되는 경우를 대비해 data: URI 우선 다운로드 시도
-        const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonStr);
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = filename;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => a.remove(), 1000);
-
-        // 2) 모바일 환경에서 Web Share API 파일 공유가 가능한 경우 보조 제공
+        // 1) 모바일 환경에서 Web Share API 파일 공유 우선 시도
         const isMobileUa = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
         if (isMobileUa && navigator.canShare && navigator.share) {
           try {
@@ -5420,7 +5503,23 @@
           }
         }
 
-        showBackupMessage(`총 ${projects.length}개 프로젝트 백업 파일이 저장되었습니다. (다운로드가 차단된 앱 환경에서는 [텍스트 백업]을 이용해 주세요)`);
+        // 2) Blob URL 기반 표준 파일 다운로드
+        const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        a.rel = 'noopener';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          a.remove();
+          URL.revokeObjectURL(blobUrl);
+        }, 5000);
+
+        textBackupBox.classList.remove('hidden');
+        showBackupMessage(`총 ${projects.length}개 프로젝트 백업 저장을 요청했습니다. 다운로드가 막힌 환경에서는 아래 [JSON 복사]를 이용해 주세요.`);
       } catch (err) {
         textBackupBox.classList.remove('hidden');
         backupJsonTextarea.value = buildBackupJsonString();
