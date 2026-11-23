@@ -736,6 +736,29 @@
     </div>
   </div>
 
+  <!-- 메인 화면 종료 확인 팝업 모달 (기본 숨김) -->
+  <div id="exitConfirmOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-[2px] p-4">
+    <div class="w-full max-w-xs bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-5 select-auto card-animate text-center">
+      <p class="text-sm font-bold text-slate-900 dark:text-slate-100 py-3">종료 하시겠습니까?</p>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button
+          type="button"
+          id="cancelExitBtn"
+          class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition cursor-pointer"
+        >
+          취소
+        </button>
+        <button
+          type="button"
+          id="confirmExitBtn"
+          class="px-4 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-slate-900 dark:bg-emerald-400 hover:bg-slate-800 dark:hover:bg-emerald-300 rounded-xl transition cursor-pointer"
+        >
+          확인
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 우측 하단 원형 프로젝트 추가 플로팅 버튼 (+ / × 전환) -->
   <button
     type="button"
@@ -750,30 +773,6 @@
     </svg>
   </button>
 
-  <!-- 메인 화면 앱 종료 확인 팝업 모달 (기본 숨김) -->
-  <div id="exitAppModalOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-[2px] p-4 transition-opacity">
-    <div class="w-full max-w-xs rounded-[28px] bg-[#FEF7FF] dark:bg-[#141218] text-[#1D1B20] dark:text-[#E6E0E9] shadow-2xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 p-6 select-auto card-animate">
-      <h2 class="text-base font-bold mb-1.5">앱 종료</h2>
-      <p class="text-xs text-[#49454F] dark:text-[#CAC4D0] leading-relaxed mb-5">앱을 종료하시겠습니까?</p>
-      <div class="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          id="cancelExitAppBtn"
-          class="px-4 py-2 text-xs font-semibold rounded-full bg-[#ECE6F0] dark:bg-[#2B2930] text-[#1D1B20] dark:text-[#E6E0E9] hover:opacity-90 transition cursor-pointer"
-        >
-          취소
-        </button>
-        <button
-          type="button"
-          id="confirmExitAppBtn"
-          class="px-4 py-2 text-xs font-semibold rounded-full bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] hover:opacity-90 active:scale-[0.98] transition cursor-pointer"
-        >
-          종료
-        </button>
-      </div>
-    </div>
-  </div>
-
   <script>
     // =========================================================================
     // 상태 관리 및 로컬 스토리지 키
@@ -784,6 +783,7 @@
     let activeProjectId = null;
     let isModalOpen = false;
     let isSettingsOpen = false;
+    let isExitConfirmOpen = false;
     let isWorkspaceMenuOpen = false;
     let isLayerPopupOpen = false;
     let isModalListPopupOpen = false;
@@ -920,90 +920,9 @@
     const projectDescInput = document.getElementById('projectDescInput');
     const nameErrorMsg = document.getElementById('nameErrorMsg');
     const cancelProjectBtn = document.getElementById('cancelProjectBtn');
-    const exitAppModalOverlay = document.getElementById('exitAppModalOverlay');
-    const cancelExitAppBtn = document.getElementById('cancelExitAppBtn');
-    const confirmExitAppBtn = document.getElementById('confirmExitAppBtn');
-    let isExitModalOpen = false;
-
-    function setExitModalState(open) {
-      isExitModalOpen = open;
-      if (isExitModalOpen) {
-        exitAppModalOverlay.classList.remove('hidden');
-        exitAppModalOverlay.classList.add('flex');
-      } else {
-        exitAppModalOverlay.classList.add('hidden');
-        exitAppModalOverlay.classList.remove('flex');
-      }
-    }
-
-    function performAppExit() {
-      setExitModalState(false);
-      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-        window.Capacitor.Plugins.App.exitApp();
-        return;
-      }
-      if (navigator.app && typeof navigator.app.exitApp === 'function') {
-        navigator.app.exitApp();
-        return;
-      }
-      window.close();
-    }
-
-    function handleSystemBackNavigation() {
-      if (isExitModalOpen) {
-        setExitModalState(false);
-        return;
-      }
-      if (editingModalItemId) {
-        closeModalTextEditor();
-        return;
-      }
-      if (isExportImagePopupOpen) {
-        setExportImagePopupState(false);
-        return;
-      }
-      if (isModalListPopupOpen) {
-        setModalListPopupState(false);
-        return;
-      }
-      if (isLayerPopupOpen) {
-        setLayerPopupState(false);
-        return;
-      }
-      if (isCanvasListPopupOpen) {
-        setCanvasListPopupState(false);
-        return;
-      }
-      if (isWorkspaceSettingsOpen) {
-        setWorkspaceSettingsState(false);
-        return;
-      }
-      if (isWorkspaceMenuOpen) {
-        setWorkspaceMenuState(false);
-        return;
-      }
-      if (isModalOpen) {
-        setModalState(false);
-        return;
-      }
-      if (isSettingsOpen) {
-        setSettingsState(false);
-        return;
-      }
-      // 프로젝트 작업 화면에 있을 경우 앱 종료 대신 메인 프로젝트 목록으로 복귀
-      if (activeProjectId !== null || !workspaceCanvasView.classList.contains('hidden')) {
-        closeProjectWorkspace();
-        return;
-      }
-      // 메인 화면에서 뒤로가기를 누를 경우 종료 확인 팝업 표시
-      setExitModalState(true);
-    }
-
-    cancelExitAppBtn.addEventListener('click', () => setExitModalState(false));
-    confirmExitAppBtn.addEventListener('click', performAppExit);
-    exitAppModalOverlay.addEventListener('click', (e) => {
-      if (e.target === exitAppModalOverlay) setExitModalState(false);
-    });
+    const exitConfirmOverlay = document.getElementById('exitConfirmOverlay');
+    const cancelExitBtn = document.getElementById('cancelExitBtn');
+    const confirmExitBtn = document.getElementById('confirmExitBtn');
 
     /**
      * 실행취소 / 다시실행 버튼 활성 상태 갱신 및 스냅샷 기록
@@ -3260,61 +3179,80 @@
     });
 
     /**
-     * 작업 캔버스 플로팅 UI 일괄 숨김 / 복원 (좌측 상단 숨김 버튼만 유지)
+     * 작업 캔버스 플로팅 UI 일괄 숨김 / 복원 토글 (모달 단독 작동 테스트 모드)
      */
     function setWorkspaceUiHiddenState(hidden) {
       isWorkspaceUiHidden = hidden;
-      const floatingElements = [
+      const targets = [
         workspaceTitleBubble,
-        workspaceUndoBtn,
-        workspaceBackBtn,
-        workspaceRedoBtn,
+        workspacePrevCanvasBtn,
         workspaceSettingsBtn,
         workspaceNewCanvasBtn,
+        workspaceUndoBtn,
+        workspaceRedoBtn,
+        workspaceBackBtn,
         workspaceAddBtn
       ];
+
       if (isWorkspaceUiHidden) {
         setWorkspaceMenuState(false);
+        setLayerPopupState(false);
+        setModalListPopupState(false);
+        setExportImagePopupState(false);
+        setCanvasListPopupState(false);
+        setWorkspaceSettingsState(false);
+        closeModalTextEditor();
+        clearSnapGuides();
         selectedModalId = null;
-        floatingElements.forEach((el) => el && el.classList.add('hidden'));
-        workspacePrevCanvasBtn.classList.add('hidden');
+        targets.forEach((el) => el.classList.add('hidden'));
         workspaceUiEyeIcon.classList.add('hidden');
         workspaceUiEyeOffIcon.classList.remove('hidden');
-        workspaceUiToggleBtn.classList.add('ring-2', 'ring-indigo-500/70', 'dark:ring-emerald-400/70');
+        workspaceUiToggleBtn.setAttribute('title', 'UI 다시 표시 (편집 모드)');
       } else {
-        floatingElements.forEach((el) => el && el.classList.remove('hidden'));
-        updateCanvasNavButtons();
+        targets.forEach((el) => el.classList.remove('hidden'));
         workspaceUiEyeIcon.classList.remove('hidden');
         workspaceUiEyeOffIcon.classList.add('hidden');
-        workspaceUiToggleBtn.classList.remove('ring-2', 'ring-indigo-500/70', 'dark:ring-emerald-400/70');
+        workspaceUiToggleBtn.setAttribute('title', 'UI 숨김 / 모달 작동 테스트');
+        updateCanvasNavButtons();
       }
-      // 인터랙티브 요소 활성/비활성 상태 동기화를 위해 레이어 재렌더링
-      if (activeProjectId) {
-        renderWorkspaceLayers();
-      }
-      workspaceBoard.querySelectorAll('[data-interactive="true"]').forEach((el) => {
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
-          el.disabled = !isWorkspaceUiHidden;
-        }
-        el.style.pointerEvents = isWorkspaceUiHidden ? 'auto' : 'none';
-      });
+      renderWorkspaceLayers();
     }
 
+    workspaceUiToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setWorkspaceUiHiddenState(!isWorkspaceUiHidden);
+    });
+
     /**
-     * 작업 캔버스 1차 선택 메뉴 (레이어 / 모달 추가) 열기 / 닫기
+     * 작업 캔버스 빈 배경 클릭 시 현재 선택된 모달의 상단바·리사이즈 핸들 선택 해제
+     */
+    workspaceBoard.addEventListener('pointerdown', (e) => {
+      if (e.target !== workspaceBoard) return;
+      if (isWorkspaceMenuOpen) setWorkspaceMenuState(false);
+      if (selectedModalId !== null) {
+        selectedModalId = null;
+        clearSnapGuides();
+        renderWorkspaceLayers();
+      }
+    });
+
+    /**
+     * 작업 캔버스 1차 선택 메뉴(레이어 / 모달 추가) 열기 / 닫기
      */
     function setWorkspaceMenuState(open) {
       isWorkspaceMenuOpen = open;
       if (isWorkspaceMenuOpen) {
         workspaceActionMenu.classList.remove('hidden');
+        workspaceActionMenu.classList.add('flex');
         workspaceAddIcon.classList.add('rotate-45');
-        workspaceAddBtn.classList.remove('bg-slate-900', 'dark:bg-emerald-400', 'hover:bg-slate-800', 'dark:hover:bg-emerald-300', 'text-white', 'dark:text-slate-950');
-        workspaceAddBtn.classList.add('bg-rose-600', 'hover:bg-rose-500', 'text-white');
+        workspaceAddBtn.setAttribute('aria-label', '닫기');
+        workspaceAddBtn.setAttribute('title', '닫기');
       } else {
         workspaceActionMenu.classList.add('hidden');
+        workspaceActionMenu.classList.remove('flex');
         workspaceAddIcon.classList.remove('rotate-45');
-        workspaceAddBtn.classList.remove('bg-rose-600', 'hover:bg-rose-500');
-        workspaceAddBtn.classList.add('bg-slate-900', 'dark:bg-emerald-400', 'hover:bg-slate-800', 'dark:hover:bg-emerald-300', 'text-white', 'dark:text-slate-950');
+        workspaceAddBtn.setAttribute('aria-label', '요소 추가');
+        workspaceAddBtn.setAttribute('title', '요소 추가');
       }
     }
 
@@ -3324,47 +3262,69 @@
     function renderLayerPopupList() {
       layerPopupList.innerHTML = '';
       const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject || !Array.isArray(currentProject.modals) || currentProject.modals.length === 0) {
-        layerPopupList.innerHTML = '<p class="text-xs text-slate-400 dark:text-slate-500 text-center py-8">배치된 레이어가 없습니다.</p>';
+      const layers = currentProject && Array.isArray(currentProject.modals) ? currentProject.modals : [];
+
+      if (layers.length === 0) {
+        layerPopupList.innerHTML = `
+          <div class="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+            배치된 레이어가 없습니다.<br/>[모달 추가]에서 요소를 먼저 추가해 주세요.
+          </div>
+        `;
         return;
       }
 
-      // 위쪽(앞에 보이는 레이어)부터 역순 표시
-      [...currentProject.modals].reverse().forEach((item, revIdx) => {
-        const realIdx = currentProject.modals.length - 1 - revIdx;
+      // 최상단(z-index 높은 순)부터 표시
+      [...layers].reverse().forEach((item, revIdx) => {
+        const realIndex = layers.length - 1 - revIdx;
+        const template = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
         const row = document.createElement('div');
         row.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/80';
         row.innerHTML = `
-          <div class="min-w-0">
-            <p class="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">${escapeHTML(item.label || item.type)}</p>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${escapeHTML(item.text || '')}</p>
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">${escapeHTML(item.label || template.label)}</p>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate">"${escapeHTML(item.text || template.defaultText)}"</p>
           </div>
           <div class="flex items-center gap-1 shrink-0">
-            <button type="button" data-dir="up" ${realIdx === currentProject.modals.length - 1 ? 'disabled' : ''} class="move-layer-btn px-2 py-1 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 disabled:opacity-30 cursor-pointer" title="앞으로">↑</button>
-            <button type="button" data-dir="down" ${realIdx === 0 ? 'disabled' : ''} class="move-layer-btn px-2 py-1 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 disabled:opacity-30 cursor-pointer" title="뒤로">↓</button>
-            <button type="button" class="del-layer-item-btn px-2 py-1 text-xs rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/60 cursor-pointer" title="삭제">✕</button>
+            <button type="button" data-action="up" ${realIndex === layers.length - 1 ? 'disabled' : ''} class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-700 disabled:opacity-30 transition cursor-pointer" title="앞으로 가져오기">↑</button>
+            <button type="button" data-action="down" ${realIndex === 0 ? 'disabled' : ''} class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-700 disabled:opacity-30 transition cursor-pointer" title="뒤로 보내기">↓</button>
+            <button type="button" data-action="edit" class="px-2 py-1 rounded-lg text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition cursor-pointer" title="텍스트 편집">T</button>
+            <button type="button" data-action="delete" class="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition cursor-pointer" title="삭제">✕</button>
           </div>
         `;
 
-        row.querySelectorAll('.move-layer-btn').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const dir = btn.dataset.dir;
-            const targetIdx = dir === 'up' ? realIdx + 1 : realIdx - 1;
-            if (targetIdx < 0 || targetIdx >= currentProject.modals.length) return;
-            const beforeSnapshot = JSON.stringify(currentProject.modals || []);
-            const temp = currentProject.modals[realIdx];
-            currentProject.modals[realIdx] = currentProject.modals[targetIdx];
-            currentProject.modals[targetIdx] = temp;
+        row.querySelector('[data-action="up"]').addEventListener('click', () => {
+          if (realIndex < layers.length - 1) {
+            const beforeSnapshot = JSON.stringify(layers);
+            [layers[realIndex], layers[realIndex + 1]] = [layers[realIndex + 1], layers[realIndex]];
             pushUndoSnapshot(beforeSnapshot);
             saveProjects();
             renderWorkspaceLayers();
             renderLayerPopupList();
-          });
+          }
         });
 
-        row.querySelector('.del-layer-item-btn').addEventListener('click', () => {
+        row.querySelector('[data-action="down"]').addEventListener('click', () => {
+          if (realIndex > 0) {
+            const beforeSnapshot = JSON.stringify(layers);
+            [layers[realIndex], layers[realIndex - 1]] = [layers[realIndex - 1], layers[realIndex]];
+            pushUndoSnapshot(beforeSnapshot);
+            saveProjects();
+            renderWorkspaceLayers();
+            renderLayerPopupList();
+          }
+        });
+
+        row.querySelector('[data-action="edit"]').addEventListener('click', () => {
+          setLayerPopupState(false);
+          openModalTextEditor(item.id);
+        });
+
+        row.querySelector('[data-action="delete"]').addEventListener('click', () => {
           const beforeSnapshot = JSON.stringify(currentProject.modals || []);
-          currentProject.modals.splice(realIdx, 1);
+          currentProject.modals = currentProject.modals.filter((m) => m.id !== item.id);
+          if (Array.isArray(currentProject.canvases) && currentProject.canvases[activeCanvasIndex]) {
+            currentProject.canvases[activeCanvasIndex].modals = currentProject.modals;
+          }
           pushUndoSnapshot(beforeSnapshot);
           saveProjects();
           renderWorkspaceLayers();
@@ -3381,7 +3341,6 @@
       if (isLayerPopupOpen) {
         setWorkspaceMenuState(false);
         setModalListPopupState(false);
-        setExportImagePopupState(false);
         renderLayerPopupList();
         layerPopupOverlay.classList.remove('hidden');
         layerPopupOverlay.classList.add('flex');
@@ -3399,7 +3358,6 @@
       if (isModalListPopupOpen) {
         setWorkspaceMenuState(false);
         setLayerPopupState(false);
-        setExportImagePopupState(false);
         renderModalListCategory(activeModalCategoryTab);
         modalListPopupOverlay.classList.remove('hidden');
         modalListPopupOverlay.classList.add('flex');
@@ -3410,7 +3368,7 @@
     }
 
     /**
-     * 이미지 저장 팝업 열기 / 닫기 및 순수 캔버스(격자 + 모달) PNG 캡처
+     * 이미지 저장 팝업 열기 / 닫기 및 순수 캔버스 + 격자 + 모달 PNG 저장 로직
      */
     function setExportImagePopupState(open) {
       isExportImagePopupOpen = open;
@@ -3420,10 +3378,10 @@
         setModalListPopupState(false);
         setCanvasListPopupState(false);
         setWorkspaceSettingsState(false);
-        exportImageStatusText.classList.add('hidden');
         const currentProject = projects.find((p) => p.id === activeProjectId);
-        const totalCount = currentProject && Array.isArray(currentProject.canvases) ? currentProject.canvases.length : 1;
-        exportAllCanvasesDesc.textContent = `프로젝트의 전체 캔버스 ${totalCount}장 저장`;
+        const total = currentProject && Array.isArray(currentProject.canvases) ? currentProject.canvases.length : 1;
+        exportAllCanvasesDesc.textContent = `프로젝트의 전체 ${total}개 캔버스 순차 저장`;
+        exportImageStatusText.classList.add('hidden');
         exportImagePopupOverlay.classList.remove('hidden');
         exportImagePopupOverlay.classList.add('flex');
       } else {
@@ -3432,174 +3390,180 @@
       }
     }
 
-    async function captureCleanCanvasPng(canvasIdx, fileBaseName) {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject) return;
-      ensureProjectCanvases(currentProject);
-
-      activeCanvasIndex = canvasIdx;
-      currentProject.modals = currentProject.canvases[canvasIdx].modals;
-      selectedModalId = null;
-      renderWorkspaceLayers();
-
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-      const isDark = appSettings.theme === 'dark';
-      const bgHex = isDark ? '#141218' : '#FEF7FF';
-      const dotHex = isDark ? '#49454F' : '#CAC4D0';
-      const showGrid = Boolean(appSettings.showGrid);
-      const boardW = workspaceBoard.clientWidth || window.innerWidth;
-      const boardH = workspaceBoard.clientHeight || window.innerHeight;
-
-      let boardSnapshotCanvas = null;
-      if (typeof window.html2canvas === 'function') {
-        boardSnapshotCanvas = await window.html2canvas(workspaceBoard, {
-          backgroundColor: null,
-          scale: Math.min(window.devicePixelRatio || 2, 2),
-          useCORS: true,
-          logging: false,
-          onclone: (clonedDoc) => {
-            const clonedBoard = clonedDoc.getElementById('workspaceBoard');
-            if (clonedBoard) {
-              clonedBoard.style.backgroundImage = 'none';
-              clonedBoard.style.backgroundColor = 'transparent';
-            }
-            clonedDoc.querySelectorAll('.modal-top-bar, .resize-handle').forEach((el) => {
-              el.style.display = 'none';
-            });
-            clonedDoc.querySelectorAll('.modal-body-box').forEach((el) => {
-              el.style.boxShadow = 'none';
-            });
-          }
-        });
-      }
-
-      const scale = boardSnapshotCanvas ? (boardSnapshotCanvas.width / boardW) : 2;
-      const outCanvas = document.createElement('canvas');
-      outCanvas.width = Math.round(boardW * scale);
-      outCanvas.height = Math.round(boardH * scale);
-      const ctx = outCanvas.getContext('2d');
-
-      // 1) 배경색 채우기
-      ctx.fillStyle = bgHex;
-      ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
-
-      // 2) 격자 도트 패턴 그리기 (.grid-bg와 동일한 16px 간격, 1.1px 반경)
-      if (showGrid) {
-        const patternCanvas = document.createElement('canvas');
-        const step = 16 * scale;
-        patternCanvas.width = step;
-        patternCanvas.height = step;
-        const pCtx = patternCanvas.getContext('2d');
-        pCtx.fillStyle = dotHex;
-        pCtx.beginPath();
-        pCtx.arc(step / 2, step / 2, 1.1 * scale, 0, Math.PI * 2);
-        pCtx.fill();
-        const pattern = ctx.createPattern(patternCanvas, 'repeat');
-        if (pattern) {
-          ctx.fillStyle = pattern;
-          ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
-        }
-      }
-
-      // 3) 배치된 모달 레이어 합성
-      if (boardSnapshotCanvas) {
-        ctx.drawImage(boardSnapshotCanvas, 0, 0, outCanvas.width, outCanvas.height);
-      }
-
-      const dataUrl = outCanvas.toDataURL('image/png');
+    function triggerDownloadDataUrl(dataUrl, filename) {
       const link = document.createElement('a');
       link.href = dataUrl;
-      link.download = `${fileBaseName}.png`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     }
 
-    async function handleExportCanvases(mode) {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject) return;
-      ensureProjectCanvases(currentProject);
+    /**
+     * 팝업과 모든 UI 버튼을 제외하고 캔버스 배경 · 격자 · 배치된 모달만 순수 캡처
+     */
+    async function capturePureCanvasImage(canvasModals) {
+      const isDark = appSettings.theme === 'dark';
+      const w = workspaceBoard.clientWidth || window.innerWidth;
+      const h = workspaceBoard.clientHeight || window.innerHeight;
 
-      const originalIdx = activeCanvasIndex;
-      const originalSelected = selectedModalId;
-      const safeProjectName = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
+      const stage = document.createElement('div');
+      stage.style.position = 'fixed';
+      stage.style.left = '-10000px';
+      stage.style.top = '0';
+      stage.style.width = `${w}px`;
+      stage.style.height = `${h}px`;
+      stage.style.overflow = 'hidden';
+      stage.style.backgroundColor = isDark ? '#141218' : '#FEF7FF';
 
-      exportSingleCanvasBtn.disabled = true;
-      exportAllCanvasesBtn.disabled = true;
-      exportImageStatusText.textContent = '이미지를 생성하고 있습니다...';
-      exportImageStatusText.classList.remove('hidden');
+      if (appSettings.showGrid) {
+        const dotColor = isDark ? '#49454F' : '#CAC4D0';
+        stage.style.backgroundImage = `radial-gradient(${dotColor} 1.1px, transparent 1.1px)`;
+        stage.style.backgroundSize = '16px 16px';
+      }
 
+      (Array.isArray(canvasModals) ? canvasModals : []).forEach((item, index) => {
+        const template = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
+        const displayText = typeof item.text === 'string' ? item.text : template.defaultText;
+        const itemWidth = typeof item.width === 'number' ? item.width : template.defaultWidth;
+        const itemHeight = typeof item.height === 'number' ? item.height : template.defaultHeight;
+
+        const el = document.createElement('div');
+        el.style.position = 'absolute';
+        el.style.left = `${item.x}px`;
+        el.style.top = `${item.y}px`;
+        el.style.width = `${itemWidth}px`;
+        el.style.height = `${itemHeight}px`;
+        el.style.zIndex = String(10 + index);
+        el.innerHTML = template.renderInner(displayText);
+        stage.appendChild(el);
+      });
+
+      document.body.appendChild(stage);
       try {
-        if (mode === 'single') {
-          await captureCleanCanvasPng(originalIdx, `${safeProjectName}_캔버스${originalIdx + 1}`);
-        } else {
-          for (let i = 0; i < currentProject.canvases.length; i += 1) {
-            exportImageStatusText.textContent = `캔버스 저장 중 (${i + 1} / ${currentProject.canvases.length})...`;
-            await captureCleanCanvasPng(i, `${safeProjectName}_캔버스${i + 1}`);
-            await new Promise((r) => setTimeout(r, 180));
-          }
-        }
+        const renderedCanvas = await html2canvas(stage, {
+          backgroundColor: isDark ? '#141218' : '#FEF7FF',
+          scale: Math.min(window.devicePixelRatio || 2, 2),
+          useCORS: true,
+          logging: false
+        });
+        return renderedCanvas.toDataURL('image/png');
       } finally {
-        activeCanvasIndex = originalIdx;
-        currentProject.modals = currentProject.canvases[originalIdx].modals;
-        selectedModalId = originalSelected;
-        updateCanvasNavButtons();
-        renderWorkspaceLayers();
-        exportSingleCanvasBtn.disabled = false;
-        exportAllCanvasesBtn.disabled = false;
-        setExportImagePopupState(false);
+        document.body.removeChild(stage);
       }
     }
 
-    // 작업 캔버스 플로팅 버튼 및 메뉴/팝업 이벤트 연결
-    workspaceUiToggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setWorkspaceUiHiddenState(!isWorkspaceUiHidden);
-    });
-    workspaceAddBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setWorkspaceMenuState(!isWorkspaceMenuOpen);
-    });
-    openLayerPopupBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setLayerPopupState(true);
-    });
-    openModalListPopupBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setModalListPopupState(true);
-    });
     openExportImagePopupBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       setExportImagePopupState(true);
     });
+
     closeExportImagePopupBtn.addEventListener('click', () => setExportImagePopupState(false));
     exportImagePopupOverlay.addEventListener('click', (e) => {
       if (e.target === exportImagePopupOverlay) setExportImagePopupState(false);
     });
-    exportSingleCanvasBtn.addEventListener('click', () => handleExportCanvases('single'));
-    exportAllCanvasesBtn.addEventListener('click', () => handleExportCanvases('all'));
+
+    exportSingleCanvasBtn.addEventListener('click', async () => {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      if (!currentProject) return;
+      ensureProjectCanvases(currentProject);
+
+      exportImageStatusText.textContent = '현재 캔버스 이미지를 생성 중입니다...';
+      exportImageStatusText.classList.remove('hidden');
+
+      const safeTitle = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
+      const dataUrl = await capturePureCanvasImage(currentProject.modals);
+      triggerDownloadDataUrl(dataUrl, `${safeTitle}_canvas_${activeCanvasIndex + 1}.png`);
+
+      exportImageStatusText.textContent = `캔버스 ${activeCanvasIndex + 1} 저장이 완료되었습니다.`;
+      setTimeout(() => setExportImagePopupState(false), 750);
+    });
+
+    exportAllCanvasesBtn.addEventListener('click', async () => {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      if (!currentProject) return;
+      const canvases = ensureProjectCanvases(currentProject);
+      const safeTitle = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
+
+      exportImageStatusText.classList.remove('hidden');
+      for (let i = 0; i < canvases.length; i++) {
+        exportImageStatusText.textContent = `전체 캔버스 저장 중 (${i + 1} / ${canvases.length})...`;
+        const dataUrl = await capturePureCanvasImage(canvases[i].modals);
+        triggerDownloadDataUrl(dataUrl, `${safeTitle}_canvas_${i + 1}.png`);
+        await new Promise((resolve) => setTimeout(resolve, 180));
+      }
+
+      exportImageStatusText.textContent = `총 ${canvases.length}개 캔버스 저장이 완료되었습니다.`;
+      setTimeout(() => setExportImagePopupState(false), 850);
+    });
+
+    workspaceAddBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isLayerPopupOpen || isModalListPopupOpen || isExportImagePopupOpen) {
+        setLayerPopupState(false);
+        setModalListPopupState(false);
+        setExportImagePopupState(false);
+        return;
+      }
+      setWorkspaceMenuState(!isWorkspaceMenuOpen);
+    });
+
+    openLayerPopupBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setLayerPopupState(true);
+    });
+
+    openModalListPopupBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setModalListPopupState(true);
+    });
+
     closeLayerPopupBtn.addEventListener('click', () => setLayerPopupState(false));
     layerPopupOverlay.addEventListener('click', (e) => {
       if (e.target === layerPopupOverlay) setLayerPopupState(false);
     });
+
     closeModalListPopupBtn.addEventListener('click', () => setModalListPopupState(false));
     modalListPopupOverlay.addEventListener('click', (e) => {
       if (e.target === modalListPopupOverlay) setModalListPopupState(false);
     });
-    workspaceBoard.addEventListener('pointerdown', (e) => {
-      if (e.target === workspaceBoard && selectedModalId !== null) {
-        selectedModalId = null;
-        renderWorkspaceLayers();
-      }
-    });
-    workspaceBoard.addEventListener('click', () => {
-      if (isWorkspaceMenuOpen) setWorkspaceMenuState(false);
-    });
 
-    /**
-     * 설정 상태 저장 및 UI 반영 (다크/밝은 테마, 그리드 표시)
-     */
+    // =========================================================================
+    // 로컬 스토리지 동기화
+    // =========================================================================
+    function loadProjects() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) projects = parsed;
+        }
+      } catch (err) {
+        console.error('프로젝트 로드 실패:', err);
+        projects = [];
+      }
+    }
+
+    function saveProjects() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+      } catch (err) {
+        console.error('프로젝트 저장 실패:', err);
+      }
+    }
+
+    function loadSettings() {
+      try {
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        if (raw) {
+          appSettings = { ...appSettings, ...JSON.parse(raw) };
+        }
+      } catch (err) {
+        console.error('설정 로드 실패:', err);
+      }
+      applySettingsUI();
+    }
+
     function saveSettings() {
       try {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
@@ -3612,16 +3576,19 @@
       const isDark = appSettings.theme === 'dark';
       document.documentElement.classList.toggle('dark', isDark);
 
+      const activeBtnClass = ['bg-white', 'dark:bg-slate-800', 'text-slate-900', 'dark:text-emerald-400', 'shadow-sm'];
+      const inactiveBtnClass = ['text-slate-500', 'dark:text-slate-400', 'hover:text-slate-700', 'dark:hover:text-slate-200'];
+
       if (isDark) {
-        darkThemeBtn.classList.add('bg-slate-800', 'text-emerald-400', 'shadow-sm');
-        darkThemeBtn.classList.remove('text-slate-400');
-        lightThemeBtn.classList.remove('bg-white', 'text-amber-500', 'shadow-sm');
-        lightThemeBtn.classList.add('text-slate-400');
+        darkThemeBtn.classList.add(...activeBtnClass);
+        darkThemeBtn.classList.remove(...inactiveBtnClass);
+        lightThemeBtn.classList.remove(...activeBtnClass);
+        lightThemeBtn.classList.add(...inactiveBtnClass);
       } else {
-        lightThemeBtn.classList.add('bg-white', 'text-amber-500', 'shadow-sm');
-        lightThemeBtn.classList.remove('text-slate-400');
-        darkThemeBtn.classList.remove('bg-slate-800', 'text-emerald-400', 'shadow-sm');
-        darkThemeBtn.classList.add('text-slate-400');
+        lightThemeBtn.classList.add(...activeBtnClass);
+        lightThemeBtn.classList.remove(...inactiveBtnClass);
+        darkThemeBtn.classList.remove(...activeBtnClass);
+        darkThemeBtn.classList.add(...inactiveBtnClass);
       }
 
       toggleGridCheckbox.checked = appSettings.showGrid;
@@ -3630,67 +3597,32 @@
 
       toggleCanvasSnapCheckbox.checked = Boolean(appSettings.canvasSnap);
       toggleModalSnapCheckbox.checked = Boolean(appSettings.modalSnap);
-      snapGapValueBadge.textContent = `${appSettings.snapGap}px`;
+      snapGapValueBadge.textContent = `${appSettings.snapGap || 16}px`;
 
       document.querySelectorAll('.snap-gap-btn').forEach((btn) => {
-        const isCurrent = Number(btn.dataset.gap) === Number(appSettings.snapGap);
-        if (isCurrent) {
-          btn.classList.add('bg-slate-900', 'dark:bg-emerald-400', 'text-white', 'dark:text-slate-950', 'border-slate-900', 'dark:border-emerald-400');
-          btn.classList.remove('bg-white', 'dark:bg-slate-900', 'text-slate-700', 'dark:text-slate-200');
-        } else {
-          btn.classList.remove('bg-slate-900', 'dark:bg-emerald-400', 'text-white', 'dark:text-slate-950', 'border-slate-900', 'dark:border-emerald-400');
-          btn.classList.add('bg-white', 'dark:bg-slate-900', 'text-slate-700', 'dark:text-slate-200');
-        }
+        const isCurrent = Number(btn.dataset.gap) === Number(appSettings.snapGap || 16);
+        btn.classList.toggle('border-slate-900', isCurrent);
+        btn.classList.toggle('dark:border-emerald-400', isCurrent);
+        btn.classList.toggle('bg-slate-900', isCurrent);
+        btn.classList.toggle('dark:bg-emerald-400', isCurrent);
+        btn.classList.toggle('text-white', isCurrent);
+        btn.classList.toggle('dark:text-slate-950', isCurrent);
       });
 
-      const activePalette = getActiveAccent();
-      if (accentColorLabel) accentColorLabel.textContent = activePalette.name;
+      const activeAccent = getActiveAccent();
+      accentColorLabel.textContent = activeAccent.name;
       document.querySelectorAll('.accent-color-btn').forEach((btn) => {
-        const isSelected = btn.dataset.accent === appSettings.accentColor;
-        btn.classList.toggle('ring-2', isSelected);
-        btn.classList.toggle('ring-slate-900', isSelected);
-        btn.classList.toggle('dark:ring-white', isSelected);
-        btn.classList.toggle('scale-110', isSelected);
+        const isCurrent = btn.dataset.accent === appSettings.accentColor;
+        btn.classList.toggle('ring-2', isCurrent);
+        btn.classList.toggle('ring-slate-900', isCurrent);
+        btn.classList.toggle('dark:ring-white', isCurrent);
+        btn.classList.toggle('scale-110', isCurrent);
       });
     }
 
-    function showBackupMessage(msg, isError = false) {
-      backupStatusMsg.textContent = msg;
-      backupStatusMsg.classList.remove('hidden', 'text-emerald-600', 'dark:text-emerald-400', 'text-rose-500');
-      if (isError) {
-        backupStatusMsg.classList.add('text-rose-500');
-      } else {
-        backupStatusMsg.classList.add('text-emerald-600', 'dark:text-emerald-400');
-      }
-    }
-
-    /**
-     * 로컬 스토리지에서 프로젝트 목록 불러오기
-     */
-    function loadProjects() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        projects = raw ? JSON.parse(raw) : [];
-      } catch (err) {
-        console.error('프로젝트 목록 로드 실패:', err);
-        projects = [];
-      }
-    }
-
-    /**
-     * 로컬 스토리지에 프로젝트 목록 저장하기
-     */
-    function saveProjects() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-      } catch (err) {
-        console.error('프로젝트 목록 저장 실패:', err);
-      }
-    }
-
-    /**
-     * HTML 이스케이프 헬퍼 (XSS 방지)
-     */
+    // =========================================================================
+    // HTML 이스케이프 헬퍼
+    // =========================================================================
     function escapeHTML(str) {
       return String(str)
         .replace(/&/g, '&amp;')
@@ -3700,36 +3632,43 @@
         .replace(/'/g, '&#39;');
     }
 
-    /**
-     * 프로젝트 카드 목록 렌더링
-     */
+    // =========================================================================
+    // 패널 캔버스 프로젝트 목록 렌더링
+    // =========================================================================
     function renderProjects() {
       projectGrid.innerHTML = '';
 
+      if (projects.length === 0) {
+        return;
+      }
+
       projects.forEach((project) => {
         const card = document.createElement('article');
-        card.className = 'card-animate group relative bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between min-h-[164px] cursor-pointer';
-        card.dataset.id = project.id;
+        card.className = 'card-animate group relative bg-[#F3EDF7] dark:bg-[#211F26] rounded-3xl border border-[#CAC4D0]/70 dark:border-[#49454F]/80 p-5 shadow-sm hover:shadow-md hover:border-[#6750A4]/50 dark:hover:border-[#D0BCFF]/50 transition-all duration-200 flex flex-col justify-between min-h-[156px] cursor-pointer';
 
         const descText = project.description && project.description.trim()
           ? escapeHTML(project.description)
-          : '<span class="text-slate-400 dark:text-slate-500 italic">작성된 설명이 없습니다.</span>';
-        const totalModals = Array.isArray(project.canvases)
+          : '<span class="text-[#79747E] dark:text-[#938F99] italic">작성된 설명이 없습니다.</span>';
+
+        const totalModals = Array.isArray(project.canvases) && project.canvases.length > 0
           ? project.canvases.reduce((sum, c) => sum + (Array.isArray(c.modals) ? c.modals.length : 0), 0)
-          : (project.modals ? project.modals.length : 0);
+          : (Array.isArray(project.modals) ? project.modals.length : 0);
+        const canvasCount = Array.isArray(project.canvases) && project.canvases.length > 0 ? project.canvases.length : 1;
 
         card.innerHTML = `
           <div>
-            <div class="flex items-start justify-between gap-3 mb-2.5">
+            <div class="flex items-start justify-between gap-2 mb-2.5">
               <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
-                <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500">${escapeHTML(project.createdAt)}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#E8DEF8] dark:bg-[#4A4458] text-[#1D192B] dark:text-[#E8DEF8]">
+                  캔버스 ${canvasCount} · 요소 ${totalModals}개
+                </span>
               </div>
               <button
                 type="button"
                 data-delete-id="${project.id}"
+                aria-label="프로젝트 삭제"
                 title="프로젝트 삭제"
-                class="delete-project-btn opacity-70 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 -mr-1.5 -mt-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition cursor-pointer"
+                class="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 -mr-1.5 -mt-1.5 rounded-lg text-[#49454F] dark:text-[#CAC4D0] hover:text-[#B3261E] dark:hover:text-[#F2B8B5] hover:bg-[#B3261E]/10 dark:hover:bg-[#F2B8B5]/10 transition cursor-pointer"
               >
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="3 6 5 6 21 6"></polyline>
@@ -3739,86 +3678,48 @@
                 </svg>
               </button>
             </div>
-            <h3 class="text-base font-bold text-slate-900 dark:text-slate-100 line-clamp-1 mb-1.5">${escapeHTML(project.name)}</h3>
-            <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3 break-words">${descText}</p>
+
+            <h2 class="text-base font-bold text-[#1D1B20] dark:text-[#E6E0E9] leading-snug mb-1.5 line-clamp-1">
+              ${escapeHTML(project.name)}
+            </h2>
+            <p class="text-xs text-[#49454F] dark:text-[#CAC4D0] leading-relaxed line-clamp-2">
+              ${descText}
+            </p>
           </div>
 
-          <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400">
-            <span>모달 ${totalModals}개 배치됨</span>
-            <span class="text-slate-800 dark:text-emerald-400 font-semibold group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
-              열기
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-            </span>
+          <div class="pt-4 mt-3 border-t border-[#CAC4D0]/50 dark:border-[#49454F]/60 flex items-center justify-between text-[11px] text-[#49454F] dark:text-[#CAC4D0]">
+            <span>생성일: ${escapeHTML(project.createdAt)}</span>
+            <span class="font-semibold text-[#6750A4] dark:text-[#D0BCFF]">캔버스 열기 →</span>
           </div>
         `;
 
-        // 카드 내 삭제 버튼 클릭 처리
-        const deleteBtn = card.querySelector('.delete-project-btn');
-        deleteBtn.addEventListener('click', (e) => {
+        // 카드 클릭 시 전용 작업 캔버스로 진입
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('[data-delete-id]')) return;
+          openProjectWorkspace(project.id);
+        });
+
+        // 삭제 버튼 이벤트
+        const delBtn = card.querySelector('[data-delete-id]');
+        delBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           projects = projects.filter((item) => item.id !== project.id);
           saveProjects();
           renderProjects();
         });
 
-        // 프로젝트 카드 클릭/터치 시 해당 프로젝트의 전체 화면 캔버스 열기
-        card.addEventListener('click', () => {
-          openProjectWorkspace(project.id);
-        });
-
         projectGrid.appendChild(card);
       });
     }
 
-    /**
-     * 프로젝트 생성 팝업 열기 / 닫기 토글 (+ <-> × 전환 포함)
-     */
-    function setModalState(open) {
-      isModalOpen = open;
-
-      if (isModalOpen) {
-        projectModalOverlay.classList.remove('hidden');
-        projectModalOverlay.classList.add('flex');
-        // + 아이콘을 45도 회전시켜 × 로 표시
-        fabPlusIcon.classList.add('rotate-45');
-        fabAddProjectBtn.classList.remove('bg-slate-900', 'dark:bg-emerald-400', 'hover:bg-slate-800', 'dark:hover:bg-emerald-300', 'dark:text-slate-950');
-        fabAddProjectBtn.classList.add('bg-rose-600', 'hover:bg-rose-500', 'text-white');
-        fabAddProjectBtn.setAttribute('aria-label', '팝업 닫기');
-
-        // 입력값 초기화 및 포커스
-        projectNameInput.value = '';
-        projectDescInput.value = '';
-        nameErrorMsg.classList.add('hidden');
-        setTimeout(() => projectNameInput.focus(), 50);
-      } else {
-        projectModalOverlay.classList.add('hidden');
-        projectModalOverlay.classList.remove('flex');
-        // 다시 + 로 복귀
-        fabPlusIcon.classList.remove('rotate-45');
-        fabAddProjectBtn.classList.remove('bg-rose-600', 'hover:bg-rose-500');
-        fabAddProjectBtn.classList.add('bg-slate-900', 'dark:bg-emerald-400', 'hover:bg-slate-800', 'dark:hover:bg-emerald-300', 'text-white', 'dark:text-slate-950');
-        fabAddProjectBtn.setAttribute('aria-label', '프로젝트 추가');
-      }
-    }
-
-    // 우측 하단 플로팅 버튼 클릭/터치 이벤트 (+ <-> × 토글)
-    fabAddProjectBtn.addEventListener('click', () => {
-      if (isSettingsOpen) setSettingsState(false);
-      setModalState(!isModalOpen);
-    });
-
-    /**
-     * 설정 팝업 열기 / 닫기 토글
-     */
+    // =========================================================================
+    // 설정 팝업 열기 / 닫기 및 기능 제어
+    // =========================================================================
     function setSettingsState(open) {
       isSettingsOpen = open;
-      backupStatusMsg.classList.add('hidden');
-
       if (isSettingsOpen) {
         if (isModalOpen) setModalState(false);
+        backupStatusMsg.classList.add('hidden');
         settingsModalOverlay.classList.remove('hidden');
         settingsModalOverlay.classList.add('flex');
         fabSettingsIcon.classList.add('rotate-90');
@@ -3829,19 +3730,20 @@
       }
     }
 
-    // 우측 상단 설정 원형 버튼 클릭 이벤트
     fabSettingsBtn.addEventListener('click', () => {
       setSettingsState(!isSettingsOpen);
     });
 
-    closeSettingsBtn.addEventListener('click', () => setSettingsState(false));
+    closeSettingsBtn.addEventListener('click', () => {
+      setSettingsState(false);
+    });
+
     settingsModalOverlay.addEventListener('click', (e) => {
       if (e.target === settingsModalOverlay) {
         setSettingsState(false);
       }
     });
 
-    // 밝은 테마 / 다크 테마 전환
     lightThemeBtn.addEventListener('click', () => {
       appSettings.theme = 'light';
       applySettingsUI();
@@ -3854,48 +3756,48 @@
       saveSettings();
     });
 
-    // 도트 그리드 표시 토글 및 저장
     toggleGridCheckbox.addEventListener('change', () => {
       appSettings.showGrid = toggleGridCheckbox.checked;
       applySettingsUI();
       saveSettings();
     });
 
-    // 프로젝트 백업 내보내기 (JSON 다운로드)
+    function showBackupMessage(text, isError = false) {
+      backupStatusMsg.textContent = text;
+      backupStatusMsg.className = `text-[11px] font-medium pt-0.5 ${isError ? 'text-rose-500' : 'text-emerald-600 dark:text-emerald-400'}`;
+      backupStatusMsg.classList.remove('hidden');
+    }
+
+    // 프로젝트 JSON 백업 내보내기
     backupProjectsBtn.addEventListener('click', () => {
       try {
-        const backupPayload = {
-          app: 'AndroidLayoutStudio',
-          version: 1,
+        const payload = {
+          app: 'Android Layout & Modal Studio',
           exportedAt: new Date().toISOString(),
           projects
         };
-        const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const now = new Date();
-        const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `android-layout-backup-${stamp}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const a = document.createElement('a');
+        const dateStamp = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `android-layout-studio-backup-${dateStamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
         URL.revokeObjectURL(url);
-
-        showBackupMessage(`프로젝트 ${projects.length}개가 백업 파일로 저장되었습니다.`);
+        showBackupMessage(`총 ${projects.length}개 프로젝트 백업 파일이 저장되었습니다.`);
       } catch (err) {
-        console.error('백업 저장 실패:', err);
         showBackupMessage('백업 파일 생성 중 오류가 발생했습니다.', true);
       }
     });
 
-    // 프로젝트 백업 불러오기 버튼 -> 숨겨진 파일 입력창 트리거
+    // 프로젝트 JSON 백업 불러오기
     restoreProjectsBtn.addEventListener('click', () => {
       restoreFileInput.value = '';
       restoreFileInput.click();
     });
 
-    // 선택된 JSON 백업 파일 파싱 및 복원
     restoreFileInput.addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
@@ -3905,88 +3807,181 @@
         try {
           const parsed = JSON.parse(event.target.result);
           const importedList = Array.isArray(parsed) ? parsed : parsed.projects;
-
           if (!Array.isArray(importedList)) {
-            showBackupMessage('올바른 프로젝트 백업 JSON 형식이 아닙니다.', true);
-            return;
+            throw new Error('올바른 백업 파일 형식이 아닙니다.');
           }
-
-          // 유효성 검증 및 정규화
-          const validProjects = importedList
-            .filter((item) => item && typeof item.name === 'string' && item.name.trim())
-            .map((item, idx) => ({
-              id: item.id || `proj_${Date.now()}_${idx}`,
-              name: item.name.trim(),
-              description: typeof item.description === 'string' ? item.description : '',
-              createdAt: item.createdAt || new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
-              modals: Array.isArray(item.modals) ? item.modals : []
-            }));
-
+          const validProjects = importedList.filter((item) => item && typeof item.name === 'string');
           projects = validProjects;
           saveProjects();
           renderProjects();
-          showBackupMessage(`총 ${validProjects.length}개의 프로젝트를 성공적으로 불러왔습니다.`);
+          showBackupMessage(`${validProjects.length}개의 프로젝트를 성공적으로 불러왔습니다.`);
         } catch (err) {
-          console.error('백업 불러오기 실패:', err);
-          showBackupMessage('JSON 파일을 읽는 중 오류가 발생했습니다.', true);
+          showBackupMessage('유효하지 않은 JSON 백업 파일입니다.', true);
         }
       };
       reader.readAsText(file);
     });
 
-    // 팝업 취소 버튼 및 배경 오버레이 클릭 시 닫기
-    cancelProjectBtn.addEventListener('click', () => setModalState(false));
+    // =========================================================================
+    // 프로젝트 생성 팝업 열기 / 닫기 (+ ↔ × 애니메이션 연동)
+    // =========================================================================
+    function setModalState(open) {
+      isModalOpen = open;
+      if (isModalOpen) {
+        if (isSettingsOpen) setSettingsState(false);
+        projectModalOverlay.classList.remove('hidden');
+        projectModalOverlay.classList.add('flex');
+        fabPlusIcon.classList.add('rotate-45');
+        fabAddProjectBtn.setAttribute('aria-label', '닫기');
+        nameErrorMsg.classList.add('hidden');
+        setTimeout(() => projectNameInput.focus(), 40);
+      } else {
+        projectModalOverlay.classList.add('hidden');
+        projectModalOverlay.classList.remove('flex');
+        fabPlusIcon.classList.remove('rotate-45');
+        fabAddProjectBtn.setAttribute('aria-label', '프로젝트 추가');
+        projectForm.reset();
+        nameErrorMsg.classList.add('hidden');
+      }
+    }
+
+    fabAddProjectBtn.addEventListener('click', () => {
+      setModalState(!isModalOpen);
+    });
+
+    cancelProjectBtn.addEventListener('click', () => {
+      setModalState(false);
+    });
+
     projectModalOverlay.addEventListener('click', (e) => {
       if (e.target === projectModalOverlay) {
         setModalState(false);
       }
     });
 
-    // ESC 키로 팝업 닫기
-    window.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        if (isExitModalOpen) setExitModalState(false);
-        if (isModalOpen) setModalState(false);
-        if (isSettingsOpen) setSettingsState(false);
-        if (isWorkspaceSettingsOpen) setWorkspaceSettingsState(false);
-        if (isWorkspaceMenuOpen) setWorkspaceMenuState(false);
-        if (isLayerPopupOpen) setLayerPopupState(false);
-        if (isModalListPopupOpen) setModalListPopupState(false);
-        if (isExportImagePopupOpen) setExportImagePopupState(false);
-        if (isCanvasListPopupOpen) setCanvasListPopupState(false);
-        if (editingModalItemId) closeModalTextEditor();
+        if (isCanvasListPopupOpen) {
+          setCanvasListPopupState(false);
+          return;
+        }
+        if (isExportImagePopupOpen) {
+          setExportImagePopupState(false);
+          return;
+        }
+        if (isWorkspaceSettingsOpen) {
+          setWorkspaceSettingsState(false);
+          return;
+        }
+        if (editingModalItemId) {
+          closeModalTextEditor();
+          return;
+        }
+        if (isLayerPopupOpen) {
+          setLayerPopupState(false);
+          return;
+        }
+        if (isModalListPopupOpen) {
+          setModalListPopupState(false);
+          return;
+        }
+        if (isWorkspaceMenuOpen) {
+          setWorkspaceMenuState(false);
+          return;
+        }
+        if (isSettingsOpen) {
+          setSettingsState(false);
+          return;
+        }
+        if (isModalOpen) {
+          setModalState(false);
+          return;
+        }
+        if (isExitConfirmOpen) {
+          setExitConfirmState(false);
+          return;
+        }
+        if (activeProjectId) {
+          closeProjectWorkspace();
+          return;
+        }
+        setExitConfirmState(true);
       }
     });
 
-    // 이름 입력 시 에러 문구 숨김
-    projectNameInput.addEventListener('input', () => {
-      if (projectNameInput.value.trim()) {
-        nameErrorMsg.classList.add('hidden');
+    // =========================================================================
+    // 메인 화면 종료 확인 팝업 제어 및 뒤로가기 감지
+    // =========================================================================
+    function setExitConfirmState(open) {
+      isExitConfirmOpen = open;
+      if (isExitConfirmOpen) {
+        exitConfirmOverlay.classList.remove('hidden');
+        exitConfirmOverlay.classList.add('flex');
+      } else {
+        exitConfirmOverlay.classList.add('hidden');
+        exitConfirmOverlay.classList.remove('flex');
+      }
+    }
+
+    cancelExitBtn.addEventListener('click', () => {
+      setExitConfirmState(false);
+    });
+
+    exitConfirmOverlay.addEventListener('click', (e) => {
+      if (e.target === exitConfirmOverlay) {
+        setExitConfirmState(false);
       }
     });
 
+    confirmExitBtn.addEventListener('click', () => {
+      setExitConfirmState(false);
+      window.close();
+      if (window.history.length > 1) {
+        window.history.back();
+      }
+    });
+
+    // 브라우저/모바일 뒤로가기 제스처 시 프로젝트 내부면 프로젝트 목록으로, 메인 화면이면 종료 확인 팝업 표시
+    if (window.history && window.history.pushState) {
+      window.history.pushState({ mainScreenGuard: true }, '', window.location.href);
+      window.addEventListener('popstate', () => {
+        window.history.pushState({ mainScreenGuard: true }, '', window.location.href);
+        if (activeProjectId) {
+          closeProjectWorkspace();
+          return;
+        }
+        if (!isModalOpen && !isSettingsOpen) {
+          setExitConfirmState(true);
+        }
+      });
+    }
+
+    // =========================================================================
     // 프로젝트 생성 폼 제출 처리
+    // =========================================================================
     projectForm.addEventListener('submit', (e) => {
       e.preventDefault();
+      const nameVal = projectNameInput.value.trim();
+      const descVal = projectDescInput.value.trim();
 
-      const name = projectNameInput.value.trim();
-      const description = projectDescInput.value.trim();
-
-      if (!name) {
+      if (!nameVal) {
         nameErrorMsg.classList.remove('hidden');
         projectNameInput.focus();
         return;
       }
 
       const now = new Date();
-      const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+      const formattedDate = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
 
       const newProject = {
         id: 'proj_' + Date.now(),
-        name,
-        description,
-        createdAt: dateStr,
-        modals: []
+        name: nameVal,
+        description: descVal,
+        createdAt: formattedDate,
+        modals: [],
+        canvases: [
+          { id: 'canvas_1_' + Date.now(), modals: [] }
+        ]
       };
 
       projects.unshift(newProject);
@@ -3995,48 +3990,16 @@
       setModalState(false);
     });
 
-    // 초기화
-    window.addEventListener('DOMContentLoaded', () => {
-      try {
-        const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
-        if (typeof savedSettings.showGrid === 'boolean') {
-          appSettings.showGrid = savedSettings.showGrid;
-        }
-        if (savedSettings.theme === 'dark' || savedSettings.theme === 'light') {
-          appSettings.theme = savedSettings.theme;
-        }
-        if (typeof savedSettings.canvasSnap === 'boolean') {
-          appSettings.canvasSnap = savedSettings.canvasSnap;
-        }
-        if (typeof savedSettings.modalSnap === 'boolean') {
-          appSettings.modalSnap = savedSettings.modalSnap;
-        }
-        if (typeof savedSettings.snapGap === 'number') {
-          appSettings.snapGap = savedSettings.snapGap;
-        }
-        if (typeof savedSettings.accentColor === 'string' && ACCENT_PALETTES[savedSettings.accentColor]) {
-          appSettings.accentColor = savedSettings.accentColor;
-        }
-      } catch (err) {
-        console.error('설정 로드 실패:', err);
+    projectNameInput.addEventListener('input', () => {
+      if (projectNameInput.value.trim()) {
+        nameErrorMsg.classList.add('hidden');
       }
-      applySettingsUI();
-      loadProjects();
-      renderProjects();
-
-      // 브라우저 및 안드로이드 WebView 뒤로가기(popstate / backbutton) 인터셉트
-      if (window.history && window.history.pushState) {
-        window.history.pushState({ appBackGuard: true }, '', window.location.href);
-        window.addEventListener('popstate', () => {
-          window.history.pushState({ appBackGuard: true }, '', window.location.href);
-          handleSystemBackNavigation();
-        });
-      }
-      document.addEventListener('backbutton', (e) => {
-        e.preventDefault();
-        handleSystemBackNavigation();
-      }, false);
     });
+
+    // 초기 실행
+    loadSettings();
+    loadProjects();
+    renderProjects();
   </script>
 </body>
 </html>
