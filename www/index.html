@@ -3889,141 +3889,77 @@
       if (e.target === exportImagePopupOverlay) setExportImagePopupState(false);
     });
 
-    function savePngToStorage(canvasEl, filename) {
+    function canvasToPngFile(canvasEl, filename) {
       return new Promise((resolve) => {
-        try {
-          if (!canvasEl || canvasEl.width === 0 || canvasEl.height === 0) {
-            resolve(false);
-            return;
-          }
-
-          const dataUrl = canvasEl.toDataURL('image/png');
-          const triggerDownload = (href, name) => {
-            try {
-              const link = document.createElement('a');
-              link.href = href;
-              link.download = name;
-              link.rel = 'noopener';
-              link.style.display = 'none';
-              document.body.appendChild(link);
-              link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-              setTimeout(() => {
-                if (link.parentNode) link.parentNode.removeChild(link);
-              }, 3000);
-              return true;
-            } catch (e) {
-              return false;
-            }
-          };
-
-          const finishWithShareOrDownload = async (blob) => {
-            const fileObj = blob ? new File([blob], filename, { type: 'image/png' }) : null;
-            if (fileObj && navigator.share) {
-              try {
-                if (!navigator.canShare || navigator.canShare({ files: [fileObj] })) {
-                  await navigator.share({
-                    files: [fileObj],
-                    title: filename
-                  });
-                  resolve(true);
-                  return;
-                }
-              } catch (shareErr) {
-                if (shareErr && shareErr.name === 'AbortError') {
-                  resolve(true);
-                  return;
-                }
-              }
-            }
-
+        if (typeof canvasEl.toBlob === 'function') {
+          canvasEl.toBlob((blob) => {
             if (blob) {
-              const blobUrl = URL.createObjectURL(blob);
-              const ok = triggerDownload(blobUrl, filename);
-              setTimeout(() => URL.revokeObjectURL(blobUrl), 6000);
-              if (ok) {
-                resolve(true);
-                return;
-              }
-            }
-
-            if (dataUrl && dataUrl.startsWith('data:image/png')) {
-              resolve(triggerDownload(dataUrl, filename));
+              resolve(new File([blob], filename, { type: 'image/png' }));
               return;
             }
-
-            resolve(false);
-          };
-
-          if (typeof canvasEl.toBlob === 'function') {
-            canvasEl.toBlob((blob) => {
-              finishWithShareOrDownload(blob);
-            }, 'image/png');
-          } else {
-            finishWithShareOrDownload(null);
-          }
-        } catch (err) {
-          try {
-            const fallbackUrl = canvasEl.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.href = fallbackUrl;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            setTimeout(() => link.remove(), 3000);
-            resolve(true);
-          } catch (fallbackErr) {
-            resolve(false);
-          }
+            resolve(dataUrlToPngFile(canvasEl.toDataURL('image/png'), filename));
+          }, 'image/png');
+        } else {
+          resolve(dataUrlToPngFile(canvasEl.toDataURL('image/png'), filename));
         }
       });
     }
 
-    async function captureCurrentBoardPng(filename) {
-      const prevSelected = selectedModalId;
-      const prevMenuOpen = isWorkspaceMenuOpen;
-      const prevUiHidden = isWorkspaceUiHidden;
-      const prevPopupOpen = isExportImagePopupOpen;
+    function dataUrlToPngFile(dataUrl, filename) {
+      const parts = dataUrl.split(',');
+      const byteStr = atob(parts[1] || '');
+      const ab = new ArrayBuffer(byteStr.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteStr.length; i++) {
+        ia[i] = byteStr.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: 'image/png' });
+      return new File([blob], filename, { type: 'image/png' });
+    }
 
-      selectedModalId = null;
-      if (prevMenuOpen) setWorkspaceMenuState(false);
+    async function shareOrDownloadPngFiles(files, shareTitle) {
+      if (!Array.isArray(files) || files.length === 0) return false;
 
-      // 저장 선택 팝업 및 플로팅 컨트롤을 모두 숨겨 캔버스와 모달만 남김
-      exportImagePopupOverlay.classList.add('hidden');
-      exportImagePopupOverlay.classList.remove('flex');
-
-      const hiddenControls = [];
-      const controlsToHide = [
-        workspaceUiToggleBtn,
-        workspacePrevCanvasBtn,
-        workspaceTitleBubble,
-        workspaceSettingsBtn,
-        workspaceNewCanvasBtn,
-        workspaceUndoBtn,
-        workspaceRedoBtn,
-        workspaceBackBtn,
-        workspaceAddBtn,
-        snapGuideLayer
-      ];
-      controlsToHide.forEach((el) => {
-        if (el && !el.classList.contains('hidden')) {
-          el.classList.add('hidden');
-          hiddenControls.push(el);
+      // 1) 사용자 클릭 컨텍스트에서 즉시 시스템 파일 공유 시트 호출
+      if (typeof navigator.share === 'function') {
+        try {
+          if (!navigator.canShare || navigator.canShare({ files })) {
+            await navigator.share({
+              files,
+              title: shareTitle
+            });
+            return true;
+          }
+        } catch (shareErr) {
+          if (shareErr && shareErr.name === 'AbortError') {
+            return true;
+          }
         }
-      });
+      }
 
-      const prevScrollLeft = workspaceBoard.scrollLeft;
-      const prevScrollTop = workspaceBoard.scrollTop;
-      const prevTransition = workspaceBoard.style.transition;
-      const prevTransform = workspaceBoard.style.transform;
+      // 2) 공유 시트 미지원 환경 폴백: 개별 파일 다운로드
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const blobUrl = URL.createObjectURL(f);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = f.name;
+        link.rel = 'noopener';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          link.remove();
+          URL.revokeObjectURL(blobUrl);
+        }, 5000);
+        if (files.length > 1) {
+          await new Promise((r) => setTimeout(r, 350));
+        }
+      }
+      return true;
+    }
 
-      workspaceBoard.scrollLeft = 0;
-      workspaceBoard.scrollTop = 0;
-      workspaceBoard.style.transition = 'none';
-      workspaceBoard.style.transform = 'none';
-
-      renderWorkspaceLayers();
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
+    function renderBoardToCanvasSync() {
       const isDark = document.documentElement.classList.contains('dark');
       const bgColor = isDark ? '#141218' : '#FEF7FF';
       const dotColor = isDark ? '#49454F' : '#CAC4D0';
@@ -4033,125 +3969,127 @@
       const captureH = Math.max(1, Math.round(boardRect.height || window.innerHeight));
       const scale = 2;
 
-      let sourceCanvas = null;
-
-      // 오프라인 및 외부 CDN 미로딩 환경에서도 2D 캔버스로 즉시 렌더링
-      if (navigator.onLine && typeof html2canvas === 'function') {
-        try {
-          sourceCanvas = await html2canvas(workspaceBoard, {
-            backgroundColor: bgColor,
-            scale,
-            x: 0,
-            y: 0,
-            width: captureW,
-            height: captureH,
-            windowWidth: captureW,
-            windowHeight: captureH,
-            scrollX: 0,
-            scrollY: 0,
-            useCORS: true,
-            allowTaint: true,
-            logging: false
-          });
-        } catch (e) {
-          sourceCanvas = null;
-        }
-      }
-
-      if (!sourceCanvas || sourceCanvas.width === 0 || sourceCanvas.height === 0) {
-        const fallbackCanvas = document.createElement('canvas');
-        fallbackCanvas.width = captureW * scale;
-        fallbackCanvas.height = captureH * scale;
-        const fctx = fallbackCanvas.getContext('2d');
-        fctx.scale(scale, scale);
-
-        fctx.fillStyle = bgColor;
-        fctx.fillRect(0, 0, captureW, captureH);
-
-        if (appSettings.showGrid) {
-          fctx.fillStyle = dotColor;
-          for (let gx = 8; gx < captureW; gx += 16) {
-            for (let gy = 8; gy < captureH; gy += 16) {
-              fctx.beginPath();
-              fctx.arc(gx, gy, 1.1, 0, Math.PI * 2);
-              fctx.fill();
-            }
-          }
-        }
-
-        const currentProject = projects.find((p) => p.id === activeProjectId);
-        const items = currentProject && Array.isArray(currentProject.modals) ? currentProject.modals : [];
-        items.forEach((item) => {
-          const tpl = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
-          const iw = typeof item.width === 'number' ? item.width : tpl.defaultWidth;
-          const ih = typeof item.height === 'number' ? item.height : tpl.defaultHeight;
-          const ix = Number(item.x) || 0;
-          const iy = Number(item.y) || 0;
-
-          fctx.save();
-          fctx.fillStyle = isDark ? '#211F26' : '#F3EDF7';
-          fctx.strokeStyle = isDark ? '#49454F' : '#CAC4D0';
-          fctx.lineWidth = 1.5;
-          fctx.beginPath();
-          if (typeof fctx.roundRect === 'function') {
-            fctx.roundRect(ix, iy, iw, ih, 20);
-          } else {
-            fctx.rect(ix, iy, iw, ih);
-          }
-          fctx.fill();
-          fctx.stroke();
-
-          fctx.fillStyle = isDark ? '#E6E0E9' : '#1D1B20';
-          fctx.font = 'bold 13px "Noto Sans KR", Inter, sans-serif';
-          fctx.fillText(String(item.text || item.label || tpl.label), ix + 16, iy + 30, Math.max(40, iw - 32));
-          fctx.restore();
-        });
-
-        sourceCanvas = fallbackCanvas;
-      }
-
-      // 캔버스 경계(captureW × captureH) 밖으로 걸친 모달 영역을 정확히 잘라냄
       const outCanvas = document.createElement('canvas');
       outCanvas.width = captureW * scale;
       outCanvas.height = captureH * scale;
-      const outCtx = outCanvas.getContext('2d');
-      outCtx.fillStyle = bgColor;
-      outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+      const ctx = outCanvas.getContext('2d');
+      ctx.scale(scale, scale);
 
-      const copyW = Math.min(sourceCanvas.width, outCanvas.width);
-      const copyH = Math.min(sourceCanvas.height, outCanvas.height);
-      outCtx.drawImage(sourceCanvas, 0, 0, copyW, copyH, 0, 0, copyW, copyH);
+      // 캔버스 경계 클리핑 (화면 바깥에 걸친 모달은 잘린 상태로 저장)
+      ctx.beginPath();
+      ctx.rect(0, 0, captureW, captureH);
+      ctx.clip();
 
-      // 숨겼던 컨트롤 및 상태 복원
-      hiddenControls.forEach((el) => el.classList.remove('hidden'));
-      workspaceBoard.style.transform = prevTransform;
-      workspaceBoard.style.transition = prevTransition;
-      workspaceBoard.scrollLeft = prevScrollLeft;
-      workspaceBoard.scrollTop = prevScrollTop;
-      selectedModalId = prevSelected;
-      if (prevUiHidden !== isWorkspaceUiHidden) {
-        setWorkspaceUiHiddenState(prevUiHidden);
-      } else {
-        renderWorkspaceLayers();
-      }
-      if (prevPopupOpen) {
-        exportImagePopupOverlay.classList.remove('hidden');
-        exportImagePopupOverlay.classList.add('flex');
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, captureW, captureH);
+
+      if (appSettings.showGrid) {
+        ctx.fillStyle = dotColor;
+        for (let gx = 8; gx < captureW; gx += 16) {
+          for (let gy = 8; gy < captureH; gy += 16) {
+            ctx.beginPath();
+            ctx.arc(gx, gy, 1.1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
       }
 
-      return savePngToStorage(outCanvas, filename);
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      const items = currentProject && Array.isArray(currentProject.modals) ? currentProject.modals : [];
+
+      items.forEach((item) => {
+        const tpl = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
+        const iw = typeof item.width === 'number' ? item.width : tpl.defaultWidth;
+        const ih = typeof item.height === 'number' ? item.height : tpl.defaultHeight;
+        const ix = Number(item.x) || 0;
+        const iy = Number(item.y) || 0;
+
+        ctx.save();
+        if (item.type && item.type.startsWith('gesture-')) {
+          ctx.fillStyle = 'rgba(99, 102, 241, 0.35)';
+          ctx.strokeStyle = 'rgba(99, 102, 241, 0.8)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(ix, iy, iw, ih, 18);
+          } else {
+            ctx.rect(ix, iy, iw, ih);
+          }
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          const isSnackbar = item.type === 'snackbar' || item.type === 'tooltip-bubble';
+          const isFilledBtn = item.type === 'filled-button';
+          ctx.fillStyle = isSnackbar
+            ? (isDark ? '#E6E0E9' : '#313033')
+            : isFilledBtn
+              ? (isDark ? '#D0BCFF' : '#6750A4')
+              : (isDark ? '#211F26' : '#F3EDF7');
+          ctx.strokeStyle = isDark ? '#49454F' : '#CAC4D0';
+          ctx.lineWidth = 1.5;
+
+          ctx.beginPath();
+          const radius = (item.type === 'filled-button' || item.type === 'outlined-button' || item.type === 'search-bar' || item.type === 'badge-chip')
+            ? Math.min(iw, ih) / 2
+            : 22;
+          if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(ix, iy, iw, ih, radius);
+          } else {
+            ctx.rect(ix, iy, iw, ih);
+          }
+          ctx.fill();
+          if (!isFilledBtn && !isSnackbar) ctx.stroke();
+
+          ctx.fillStyle = isSnackbar
+            ? (isDark ? '#313033' : '#F4EFF4')
+            : isFilledBtn
+              ? (isDark ? '#381E72' : '#FFFFFF')
+              : (isDark ? '#E6E0E9' : '#1D1B20');
+          ctx.font = 'bold 13px "Noto Sans KR", Inter, sans-serif';
+          const titleStr = String(item.text || item.label || tpl.label);
+          ctx.fillText(titleStr, ix + 16, iy + 28, Math.max(32, iw - 32));
+
+          // 모달 내부 세부 텍스트 라인 렌더링
+          const domEl = workspaceBoard.querySelector(`.modal-draggable[data-layer-id="${item.id}"] .modal-body-box`);
+          if (domEl) {
+            const rawLines = domEl.innerText
+              .split('\n')
+              .map((s) => s.trim())
+              .filter((s) => s && s !== titleStr);
+            ctx.font = '11px "Noto Sans KR", Inter, sans-serif';
+            ctx.fillStyle = isSnackbar
+              ? (isDark ? '#49454F' : '#CAC4D0')
+              : (isDark ? '#CAC4D0' : '#49454F');
+            let lineY = iy + 48;
+            for (let li = 0; li < rawLines.length && lineY < iy + ih - 12; li++) {
+              ctx.fillText(rawLines[li], ix + 16, lineY, Math.max(32, iw - 32));
+              lineY += 18;
+            }
+          }
+        }
+        ctx.restore();
+      });
+
+      return outCanvas;
+    }
+
+    async function captureCurrentBoardPng(filename) {
+      const outCanvas = renderBoardToCanvasSync();
+      const pngFile = await canvasToPngFile(outCanvas, filename);
+      return shareOrDownloadPngFiles([pngFile], filename);
     }
 
     exportSingleCanvasBtn.addEventListener('click', async () => {
       const currentProject = projects.find((p) => p.id === activeProjectId);
       if (!currentProject) return;
       const safeName = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
-      exportImageStatusText.textContent = '현재 캔버스를 이미지로 변환 중...';
-      exportImageStatusText.classList.remove('hidden');
-      const ok = await captureCurrentBoardPng(`${safeName}_canvas_${activeCanvasIndex + 1}.png`);
-      exportImageStatusText.textContent = ok
-        ? '캔버스 PNG 이미지 저장이 완료되었습니다.'
-        : '이미지 저장에 실패했습니다.';
+      const filename = `${safeName}_canvas_${activeCanvasIndex + 1}.png`;
+
+      // 사용자 클릭 제스처 유지를 위해 팝업만 즉시 닫고 동기 캔버스로 바로 파일 공유 팝업 호출
+      setExportImagePopupState(false);
+      const outCanvas = renderBoardToCanvasSync();
+      const pngFile = await canvasToPngFile(outCanvas, filename);
+      await shareOrDownloadPngFiles([pngFile], filename);
     });
 
     exportAllCanvasesBtn.addEventListener('click', async () => {
@@ -4161,22 +4099,25 @@
       const originalIndex = activeCanvasIndex;
       const safeName = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
 
-      exportImageStatusText.classList.remove('hidden');
+      setExportImagePopupState(false);
+      const generatedFiles = [];
+
       for (let i = 0; i < canvases.length; i++) {
-        exportImageStatusText.textContent = `캔버스 ${i + 1} / ${canvases.length} 저장 중...`;
         activeCanvasIndex = i;
         ensureProjectCanvases(currentProject);
-        updateCanvasNavigationUI();
         renderWorkspaceLayers();
-        await captureCurrentBoardPng(`${safeName}_canvas_${i + 1}.png`);
-        await new Promise((r) => setTimeout(r, 400));
+        const outCanvas = renderBoardToCanvasSync();
+        const pngFile = await canvasToPngFile(outCanvas, `${safeName}_canvas_${i + 1}.png`);
+        generatedFiles.push(pngFile);
       }
 
       activeCanvasIndex = originalIndex;
       ensureProjectCanvases(currentProject);
       updateCanvasNavigationUI();
       renderWorkspaceLayers();
-      exportImageStatusText.textContent = `총 ${canvases.length}개 캔버스 저장이 완료되었습니다.`;
+
+      // 생성된 모든 캔버스 PNG 파일들을 한 번에 파일 공유 시트로 전달
+      await shareOrDownloadPngFiles(generatedFiles, `${safeName}_canvases`);
     });
 
     // =========================================================================
