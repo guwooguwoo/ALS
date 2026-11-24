@@ -145,6 +145,14 @@
       </button>
     </div>
 
+    <!-- 액션 버튼 선택·이동 중 상단 파일이름 아래 표시되는 안내 버블 -->
+    <div
+      id="actionLinkHintBubble"
+      class="hidden fixed top-16 sm:top-[4.5rem] left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3.5 py-1.5 rounded-full bg-rose-600/95 dark:bg-rose-500/95 text-white text-[11px] font-bold shadow-lg shadow-rose-950/20 whitespace-nowrap"
+    >
+      캔버스 링크 시키기
+    </div>
+
     <!-- 캔버스 리스트 팝업 모달 -->
     <div id="canvasListPopupOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-[2px] p-4">
       <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-5 select-auto card-animate">
@@ -261,7 +269,7 @@
       </div>
     </div>
 
-    <!-- 작업 캔버스 1차 선택 메뉴 (우측 하단 + 버튼 위쪽: 이미지 저장 / 레이어 / 제스처 표시 / 모달 추가) -->
+    <!-- 작업 캔버스 1차 선택 메뉴 (우측 하단 + 버튼 위쪽: 이미지 저장 / 레이어 / 제스처 표시 / 액션 / 모달 추가) -->
     <div
       id="workspaceActionMenu"
       class="fixed bottom-32 right-6 sm:bottom-36 sm:right-8 z-50 hidden flex flex-col gap-2 w-48 card-animate"
@@ -280,7 +288,6 @@
         </span>
         <div>
           <p class="text-xs font-bold">이미지 저장</p>
-          <p class="text-[10px] text-slate-500 dark:text-slate-400">캔버스 PNG 내보내기</p>
         </div>
       </button>
 
@@ -298,7 +305,6 @@
         </span>
         <div>
           <p class="text-xs font-bold">레이어</p>
-          <p class="text-[10px] text-slate-500 dark:text-slate-400">배치된 레이어 관리</p>
         </div>
       </button>
 
@@ -317,7 +323,21 @@
         </span>
         <div>
           <p class="text-xs font-bold">제스처 표시</p>
-          <p class="text-[10px] text-slate-500 dark:text-slate-400">슬라이드 화살표 · 탭 손가락</p>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        id="openActionFlowPopupBtn"
+        class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-md hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200/90 dark:border-slate-700 shadow-lg text-left transition cursor-pointer"
+      >
+        <span class="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </span>
+        <div>
+          <p class="text-xs font-bold">액션</p>
         </div>
       </button>
 
@@ -335,9 +355,43 @@
         </span>
         <div>
           <p class="text-xs font-bold">모달 추가</p>
-          <p class="text-[10px] text-slate-500 dark:text-slate-400">모달 · UI 리스트</p>
         </div>
       </button>
+    </div>
+
+    <!-- 액션 캔버스 링크 설정 팝업 모달 -->
+    <div id="actionFlowPopupOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-[2px] p-4">
+      <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-5 select-auto card-animate">
+        <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">액션 캔버스 링크 설정</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">미리보기에서 이 영역을 터치하면 이동할 캔버스를 선택하세요.</p>
+          </div>
+          <button
+            type="button"
+            id="closeActionFlowPopupBtn"
+            aria-label="액션 설정 팝업 닫기"
+            class="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div id="actionTargetCanvasList" class="space-y-2 max-h-[48vh] overflow-y-auto pr-0.5 mb-3"></div>
+
+        <div class="flex justify-end">
+          <button
+            type="button"
+            id="cancelActionLinkBtn"
+            class="px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- 제스처 · 인터랙션 표시 선택 팝업 모달 (모달과 별개) -->
@@ -1030,6 +1084,8 @@
     let isLayerPopupOpen = false;
     let isModalListPopupOpen = false;
     let isGesturePopupOpen = false;
+    let isActionFlowPopupOpen = false;
+    let editingActionItemId = null;
     let isCanvasListPopupOpen = false;
     let isExportImagePopupOpen = false;
     let editingModalItemId = null;
@@ -1119,6 +1175,7 @@
     const workspaceTitleBubble = document.getElementById('workspaceTitleBubble');
     const workspaceTitleBtn = document.getElementById('workspaceTitleBtn');
     const workspaceProjectTitle = document.getElementById('workspaceProjectTitle');
+    const actionLinkHintBubble = document.getElementById('actionLinkHintBubble');
     const canvasListPopupOverlay = document.getElementById('canvasListPopupOverlay');
     const closeCanvasListPopupBtn = document.getElementById('closeCanvasListPopupBtn');
     const canvasListContainer = document.getElementById('canvasListContainer');
@@ -1144,7 +1201,12 @@
     const workspaceActionMenu = document.getElementById('workspaceActionMenu');
     const openLayerPopupBtn = document.getElementById('openLayerPopupBtn');
     const openGesturePopupBtn = document.getElementById('openGesturePopupBtn');
+    const openActionFlowPopupBtn = document.getElementById('openActionFlowPopupBtn');
     const openModalListPopupBtn = document.getElementById('openModalListPopupBtn');
+    const actionFlowPopupOverlay = document.getElementById('actionFlowPopupOverlay');
+    const closeActionFlowPopupBtn = document.getElementById('closeActionFlowPopupBtn');
+    const actionTargetCanvasList = document.getElementById('actionTargetCanvasList');
+    const cancelActionLinkBtn = document.getElementById('cancelActionLinkBtn');
     const gesturePopupOverlay = document.getElementById('gesturePopupOverlay');
     const closeGesturePopupBtn = document.getElementById('closeGesturePopupBtn');
     const openExportImagePopupBtn = document.getElementById('openExportImagePopupBtn');
@@ -1653,7 +1715,7 @@
 
       try {
         const isZipFile = file.name.toLowerCase().endsWith('.zip') || file.type === 'application/zip' || file.type === 'application/x-zip-compressed';
-        if (isZipFile && typeof JSZip !== 'undefined') {
+        if (isZipFile && typeof JSZip === 'undefined') {
           const arrayBuffer = await file.arrayBuffer();
           const zip = await JSZip.loadAsync(arrayBuffer);
           const mainEntry = zip.file('projects.json') || zip.file(/\.json$/i)[0];
@@ -1948,20 +2010,37 @@
         const itemHeight = typeof item.height === 'number' ? item.height : template.defaultHeight;
         const isSelected = !isWorkspaceUiHidden && selectedModalId === item.id;
         const isPinned = Boolean(item.pinned);
+        const isActionHotspot = item.type === 'action-hotspot';
         const isTopClipped = item.y < 28;
 
         const layerEl = document.createElement('div');
         layerEl.dataset.layerId = item.id;
-        layerEl.className = `modal-draggable absolute group ${isWorkspaceUiHidden || isPinned ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`;
+        layerEl.className = `modal-draggable absolute group ${
+          isWorkspaceUiHidden
+            ? (isActionHotspot ? 'cursor-pointer' : 'cursor-default')
+            : (isPinned ? 'cursor-default' : 'cursor-grab active:cursor-grabbing')
+        }`;
         layerEl.style.left = `${item.x}px`;
         layerEl.style.top = `${item.y}px`;
         layerEl.style.width = `${itemWidth}px`;
-        layerEl.style.zIndex = String(isSelected ? 30 + index : 10 + index);
+        layerEl.style.zIndex = String(isActionHotspot ? 40 + index : (isSelected ? 30 + index : 10 + index));
+
+        let targetCanvasLabel = '미연결';
+        if (isActionHotspot && item.targetCanvasId && Array.isArray(currentProject.canvases)) {
+          const foundIdx = currentProject.canvases.findIndex((c) => c.id === item.targetCanvasId);
+          if (foundIdx !== -1) {
+            targetCanvasLabel = `캔버스 ${foundIdx + 1}`;
+          }
+        }
+
+        const displayTopLabel = isActionHotspot
+          ? `액션 (${targetCanvasLabel})`
+          : (item.label || template.label);
 
         layerEl.innerHTML = `
           <div class="relative w-full">
             <div class="modal-top-bar ${isTopClipped ? 'order-2 mt-1.5' : 'mb-1.5'} flex items-center w-full justify-between px-2.5 py-0.5 rounded-full ${isSelected ? 'opacity-95' : 'opacity-0 pointer-events-none'} bg-slate-900/85 dark:bg-slate-700/90 text-white text-[10px] font-medium transition-opacity duration-150 overflow-hidden shadow-sm">
-              <span class="modal-bar-label truncate">${escapeHTML(item.label || template.label)}</span>
+              <span class="modal-bar-label truncate">${escapeHTML(displayTopLabel)}</span>
               <div class="modal-bar-actions flex items-center gap-1 shrink-0">
                 <span class="size-badge text-[9px] text-slate-300 font-mono mr-0.5">${itemWidth}×${itemHeight}</span>
                 <button type="button" class="pin-layer-btn ${isPinned ? 'text-amber-300 bg-amber-400/20 rounded' : 'text-slate-300 hover:text-amber-200'} px-1 cursor-pointer flex items-center justify-center" title="${isPinned ? '위치 고정 해제' : '위치 고정'}">
@@ -1970,12 +2049,18 @@
                     <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path>
                   </svg>
                 </button>
-                <button type="button" class="edit-text-btn text-emerald-300 hover:text-emerald-200 font-semibold px-1 cursor-pointer" title="중앙 텍스트 수정">T</button>
+                ${isActionHotspot
+                  ? '<button type="button" class="link-action-btn text-rose-300 hover:text-rose-200 font-semibold px-1 cursor-pointer" title="캔버스 링크 설정">🔗</button>'
+                  : '<button type="button" class="edit-text-btn text-emerald-300 hover:text-emerald-200 font-semibold px-1 cursor-pointer" title="중앙 텍스트 수정">T</button>'
+                }
                 <button type="button" class="remove-layer-btn text-rose-300 hover:text-rose-200 font-bold px-1 cursor-pointer" title="레이어 삭제">×</button>
               </div>
             </div>
             <div class="modal-body-box relative w-full rounded-3xl ${isSelected ? accent.ring.join(' ') : ''} transition-shadow" style="height: ${itemHeight}px;">
-              ${template.renderInner(displayText)}
+              ${isActionHotspot
+                ? template.renderInner(targetCanvasLabel, isWorkspaceUiHidden)
+                : template.renderInner(displayText)
+              }
               <!-- 우측 하단 크기 조절(리사이즈) 핸들 -->
               <div
                 class="resize-handle absolute bottom-1.5 right-1.5 w-5 h-5 rounded-br-2xl rounded-tl-lg ${accent.handle.join(' ')} flex items-center justify-center ${isSelected && !isPinned ? 'opacity-90' : 'opacity-0 pointer-events-none'} transition-opacity cursor-nwse-resize shadow-sm"
@@ -2007,12 +2092,21 @@
         const resizeHandle = layerEl.querySelector('.resize-handle');
         const sizeBadge = layerEl.querySelector('.size-badge');
         const pinBtn = layerEl.querySelector('.pin-layer-btn');
+        const linkActionBtn = layerEl.querySelector('.link-action-btn');
         const editBtn = layerEl.querySelector('.edit-text-btn');
         const removeBtn = layerEl.querySelector('.remove-layer-btn');
 
         applyOrientationToElement(bodyBox, item);
         applyCustomTextsAndIconsToElement(bodyBox, item);
         bindInteractiveModalControls(layerEl);
+
+        if (linkActionBtn) {
+          linkActionBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+          linkActionBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openActionLinkEditor(item.id);
+          });
+        }
 
         if (pinBtn) {
           pinBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -2023,6 +2117,43 @@
             pushUndoSnapshot(beforeSnapshot);
             saveProjects();
             renderWorkspaceLayers();
+          });
+        }
+
+        if (resizeHandle) {
+          resizeHandle.addEventListener('pointerdown', (e) => {
+            if (isWorkspaceUiHidden || item.pinned) return;
+            e.stopPropagation();
+            const beforeSnapshot = JSON.stringify(currentProject.modals || []);
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const origW = typeof item.width === 'number' ? item.width : template.defaultWidth;
+            const origH = typeof item.height === 'number' ? item.height : template.defaultHeight;
+            const topOffset = topBarEl && !topBarEl.classList.contains('order-2') ? (topBarEl.offsetHeight + 6) : 0;
+            resizeHandle.setPointerCapture(e.pointerId);
+
+            const onResizeMove = (moveEvent) => {
+              const rawW = Math.max(44, Math.round(origW + (moveEvent.clientX - startX)));
+              const rawH = Math.max(36, Math.round(origH + (moveEvent.clientY - startY)));
+              const snapped = computeSnapSize(item, rawW, rawH, topOffset);
+              item.width = snapped.width;
+              item.height = snapped.height;
+              layerEl.style.width = `${item.width}px`;
+              if (bodyBox) bodyBox.style.height = `${item.height}px`;
+              if (sizeBadge) sizeBadge.textContent = `${item.width}×${item.height}`;
+              renderSnapGuides(snapped.guides);
+            };
+
+            const onResizeUp = () => {
+              resizeHandle.removeEventListener('pointermove', onResizeMove);
+              resizeHandle.removeEventListener('pointerup', onResizeUp);
+              clearSnapGuides();
+              pushUndoSnapshot(beforeSnapshot);
+              saveProjects();
+            };
+
+            resizeHandle.addEventListener('pointermove', onResizeMove);
+            resizeHandle.addEventListener('pointerup', onResizeUp);
           });
         }
 
@@ -2054,43 +2185,23 @@
         layerEl.addEventListener('dblclick', (e) => {
           if (isWorkspaceUiHidden) return;
           e.stopPropagation();
-          openModalTextEditor(item.id);
+          if (isActionHotspot) {
+            openActionLinkEditor(item.id);
+          } else {
+            openModalTextEditor(item.id);
+          }
         });
 
-        if (resizeHandle) {
-          resizeHandle.addEventListener('pointerdown', (e) => {
-            if (isWorkspaceUiHidden || item.pinned) return;
+        // 미리보기(UI 숨김 모드)에서 액션 라운드 사각형 터치/클릭 시 연결된 캔버스로 이동
+        if (isActionHotspot) {
+          layerEl.addEventListener('click', (e) => {
+            if (!isWorkspaceUiHidden) return;
             e.stopPropagation();
-            const beforeSnapshot = JSON.stringify(currentProject.modals || []);
-            const startX = e.clientX;
-            const startY = e.clientY;
-            const origW = typeof item.width === 'number' ? item.width : template.defaultWidth;
-            const origH = typeof item.height === 'number' ? item.height : template.defaultHeight;
-            const topOffset = bodyBox ? bodyBox.offsetTop : 26;
-            resizeHandle.setPointerCapture(e.pointerId);
-
-            const onResizeMove = (moveEvent) => {
-              const rawW = Math.max(44, Math.round(origW + (moveEvent.clientX - startX)));
-              const rawH = Math.max(40, Math.round(origH + (moveEvent.clientY - startY)));
-              const snappedSize = computeSnapSize(item, rawW, rawH, topOffset);
-              item.width = snappedSize.width;
-              item.height = snappedSize.height;
-              layerEl.style.width = `${item.width}px`;
-              if (bodyBox) bodyBox.style.height = `${item.height}px`;
-              if (sizeBadge) sizeBadge.textContent = `${item.width}×${item.height}`;
-              renderSnapGuides(snappedSize.guides);
-            };
-
-            const onResizeUp = () => {
-              resizeHandle.removeEventListener('pointermove', onResizeMove);
-              resizeHandle.removeEventListener('pointerup', onResizeUp);
-              clearSnapGuides();
-              pushUndoSnapshot(beforeSnapshot);
-              saveProjects();
-            };
-
-            resizeHandle.addEventListener('pointermove', onResizeMove);
-            resizeHandle.addEventListener('pointerup', onResizeUp);
+            if (!item.targetCanvasId || !Array.isArray(currentProject.canvases)) return;
+            const targetIdx = currentProject.canvases.findIndex((c) => c.id === item.targetCanvasId);
+            if (targetIdx !== -1 && targetIdx !== activeCanvasIndex) {
+              switchCanvasWithSlide(targetIdx, targetIdx > activeCanvasIndex ? 'next' : 'prev');
+            }
           });
         }
 
@@ -2098,10 +2209,27 @@
         layerEl.addEventListener('pointerdown', (e) => {
           if (isWorkspaceUiHidden) return;
           e.stopPropagation();
+
+          // 액션 버튼 선택·이동 중 상단 파일이름 아래 "캔버스 링크 시키기" 버블 표시
+          if (isActionHotspot && actionLinkHintBubble) {
+            actionLinkHintBubble.classList.remove('hidden');
+          }
+
+          // 액션 라운드 사각형 롱 터치(500ms 이상 누르기) 시 설정 팝업 열기
+          let longPressTimer = null;
+          let movedBeyondThreshold = false;
+          if (isActionHotspot) {
+            longPressTimer = setTimeout(() => {
+              if (!movedBeyondThreshold) {
+                if (actionLinkHintBubble) actionLinkHintBubble.classList.add('hidden');
+                openActionLinkEditor(item.id);
+              }
+            }, 500);
+          }
+
           if (selectedModalId !== item.id) {
             selectedModalId = item.id;
             workspaceBoard.querySelectorAll('.modal-draggable').forEach((otherEl) => {
-              if (otherEl === layerEl) return;
               const otherBar = otherEl.querySelector('.modal-top-bar');
               const otherBody = otherEl.querySelector('.modal-body-box');
               const otherResize = otherEl.querySelector('.resize-handle');
@@ -2130,7 +2258,20 @@
             }
           }
 
-          if (item.pinned) return;
+          if (item.pinned) {
+            const onPinnedRelease = () => {
+              if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+              }
+              if (actionLinkHintBubble) actionLinkHintBubble.classList.add('hidden');
+              window.removeEventListener('pointerup', onPinnedRelease);
+              window.removeEventListener('pointercancel', onPinnedRelease);
+            };
+            window.addEventListener('pointerup', onPinnedRelease);
+            window.addEventListener('pointercancel', onPinnedRelease);
+            return;
+          }
 
           const beforeSnapshot = JSON.stringify(currentProject.modals || []);
           const startX = e.clientX;
@@ -2138,9 +2279,22 @@
           const origX = item.x;
           const origY = item.y;
           const barHeight = topBarEl ? (topBarEl.offsetHeight + 6) : 26;
+          let isDraggingActive = false;
           layerEl.setPointerCapture(e.pointerId);
 
           const onPointerMove = (moveEvent) => {
+            if (Math.abs(moveEvent.clientX - startX) > 6 || Math.abs(moveEvent.clientY - startY) > 6) {
+              movedBeyondThreshold = true;
+              if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+              }
+              // 모든 모달·요소 드래그 이동 시작 시 주변 UI 전체 숨김
+              if (!isDraggingActive) {
+                isDraggingActive = true;
+                setDragHiddenChrome(true, isActionHotspot);
+              }
+            }
             const rawX = Math.max(0, Math.round(origX + (moveEvent.clientX - startX)));
             const rawY = Math.round(origY + (moveEvent.clientY - startY));
             const currentTopOffset = rawY < 28 ? 0 : barHeight;
@@ -2160,8 +2314,20 @@
           };
 
           const onPointerUp = () => {
+            if (longPressTimer) {
+              clearTimeout(longPressTimer);
+              longPressTimer = null;
+            }
+            if (actionLinkHintBubble) {
+              actionLinkHintBubble.classList.add('hidden');
+            }
+            if (isDraggingActive) {
+              isDraggingActive = false;
+              setDragHiddenChrome(false, isActionHotspot);
+            }
             layerEl.removeEventListener('pointermove', onPointerMove);
             layerEl.removeEventListener('pointerup', onPointerUp);
+            layerEl.removeEventListener('pointercancel', onPointerUp);
             clearSnapGuides();
             pushUndoSnapshot(beforeSnapshot);
             saveProjects();
@@ -2169,6 +2335,7 @@
 
           layerEl.addEventListener('pointermove', onPointerMove);
           layerEl.addEventListener('pointerup', onPointerUp);
+          layerEl.addEventListener('pointercancel', onPointerUp);
         });
 
         workspaceBoard.appendChild(layerEl);
@@ -3364,6 +3531,27 @@
             <span class="text-4xl drop-shadow">👆</span>
           </div>
         `
+      },
+      'action-hotspot': {
+        label: '액션 터치 영역',
+        defaultText: '미연결',
+        defaultX: 88,
+        defaultY: 120,
+        defaultWidth: 160,
+        defaultHeight: 56,
+        renderInner: (targetLabel, isPreviewMode = false) => `
+          <div class="w-full h-full rounded-2xl ${
+            isPreviewMode
+              ? 'bg-transparent border-transparent shadow-none'
+              : 'bg-rose-500/15 dark:bg-rose-500/20 border-2 border-dashed border-rose-500/75 dark:border-rose-400/80 shadow-sm'
+          } flex items-center justify-center px-3 transition-all select-none">
+            ${
+              isPreviewMode
+                ? ''
+                : `<span class="text-[11px] font-bold text-rose-700 dark:text-rose-200 truncate pointer-events-none">⚡ ${escapeHTML(targetLabel || '미연결')}</span>`
+            }
+          </div>
+        `
       }
     };
 
@@ -3589,663 +3777,47 @@
     }
 
     // =========================================================================
-    // 이미지 저장 팝업 & 오프라인 캔버스 PNG·JPG 스샷 추출/공유
+    // UI 숨김 토글 (모달 단독 작동 테스트 모드) & 드래그 중 임시 UI 숨김
     // =========================================================================
-    function updateExportFormatUI(fmt) {
-      selectedExportFormat = fmt === 'jpg' ? 'jpg' : 'png';
-      exportSingleFmtBadge.textContent = selectedExportFormat.toUpperCase();
-      document.querySelectorAll('.export-fmt-btn').forEach((btn) => {
-        const active = btn.dataset.exportFmt === selectedExportFormat;
-        btn.classList.toggle('bg-white', active);
-        btn.classList.toggle('dark:bg-slate-900', active);
-        btn.classList.toggle('text-indigo-600', active);
-        btn.classList.toggle('dark:text-emerald-400', active);
-        btn.classList.toggle('shadow-sm', active);
-        btn.classList.toggle('text-slate-500', !active);
-        btn.classList.toggle('dark:text-slate-400', !active);
-      });
-    }
+    function setDragHiddenChrome(hidden, keepActionHint = false) {
+      const uiControls = [
+        workspaceUiToggleBtn,
+        workspacePrevCanvasBtn,
+        workspaceTitleBubble,
+        workspaceSettingsBtn,
+        workspaceNewCanvasBtn,
+        workspaceUndoBtn,
+        workspaceRedoBtn,
+        workspaceBackBtn,
+        workspaceAddBtn
+      ];
 
-    document.querySelectorAll('.export-fmt-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        updateExportFormatUI(btn.dataset.exportFmt);
-      });
-    });
-
-    function setExportImagePopupState(open) {
-      isExportImagePopupOpen = open;
-      if (isExportImagePopupOpen) {
+      if (hidden) {
         setWorkspaceMenuState(false);
-        updateExportFormatUI(selectedExportFormat);
-        const currentProject = projects.find((p) => p.id === activeProjectId);
-        const count = currentProject && Array.isArray(currentProject.canvases) ? currentProject.canvases.length : 1;
-        exportAllCanvasesDesc.textContent = `프로젝트 전체 ${count}개 캔버스 ${selectedExportFormat.toUpperCase()} 추출`;
-        exportImageStatusText.classList.add('hidden');
-        exportImagePopupOverlay.classList.remove('hidden');
-        exportImagePopupOverlay.classList.add('flex');
-      } else {
-        exportImagePopupOverlay.classList.add('hidden');
-        exportImagePopupOverlay.classList.remove('flex');
-      }
-    }
-
-    openExportImagePopupBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setExportImagePopupState(true);
-    });
-    closeExportImagePopupBtn.addEventListener('click', () => setExportImagePopupState(false));
-    exportImagePopupOverlay.addEventListener('click', (e) => {
-      if (e.target === exportImagePopupOverlay) setExportImagePopupState(false);
-    });
-
-    function openScreenshotShareSheet(items) {
-      pendingExportItems = items;
-      screenshotSheetTitle.textContent = `이미지 ${items.length}개`;
-      screenshotSheetNotice.classList.add('hidden');
-      screenshotPreviewContainer.innerHTML = '';
-
-      items.forEach((entry) => {
-        const img = document.createElement('img');
-        img.src = entry.dataUrl;
-        img.alt = entry.filename;
-        img.className = 'max-h-52 w-auto rounded-xl shadow-md border border-slate-300/60 dark:border-slate-700 object-contain shrink-0';
-        screenshotPreviewContainer.appendChild(img);
-      });
-
-      screenshotShareSheetOverlay.classList.remove('hidden');
-      screenshotShareSheetOverlay.classList.add('flex');
-    }
-
-    function closeScreenshotShareSheet() {
-      screenshotShareSheetOverlay.classList.add('hidden');
-      screenshotShareSheetOverlay.classList.remove('flex');
-    }
-
-    closeScreenshotSheetBtn.addEventListener('click', closeScreenshotShareSheet);
-    screenshotShareSheetOverlay.addEventListener('click', (e) => {
-      if (e.target === screenshotShareSheetOverlay) closeScreenshotShareSheet();
-    });
-
-    function dataUrlToImageFile(dataUrl, filename, mimeType) {
-      const parts = dataUrl.split(',');
-      const byteStr = atob(parts[1] || '');
-      const ab = new ArrayBuffer(byteStr.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteStr.length; i++) {
-        ia[i] = byteStr.charCodeAt(i);
-      }
-      const blob = new Blob([ab], { type: mimeType });
-      return new File([blob], filename, { type: mimeType });
-    }
-
-    function exportCanvasToImageEntry(canvasEl, baseFilename, format) {
-      const isJpg = format === 'jpg';
-      const mimeType = isJpg ? 'image/jpeg' : 'image/png';
-      const ext = isJpg ? 'jpg' : 'png';
-      const filename = `${baseFilename}.${ext}`;
-      const dataUrl = isJpg
-        ? canvasEl.toDataURL('image/jpeg', 0.92)
-        : canvasEl.toDataURL('image/png');
-      const file = dataUrlToImageFile(dataUrl, filename, mimeType);
-      return { file, dataUrl, filename, mimeType };
-    }
-
-    async function shareImageFilesNow(items, shareTitle) {
-      if (!Array.isArray(items) || items.length === 0) return false;
-
-      // 1) Android APK (Capacitor 네이티브 환경): Filesystem(Directory.Cache) + Share.share 우선 실행
-      const cap = window.Capacitor;
-      const plugins = cap && (cap.Plugins || (typeof cap.getPlugins === 'function' ? cap.getPlugins() : null));
-      const FilesystemPlugin = plugins && plugins.Filesystem;
-      const SharePlugin = plugins && plugins.Share;
-      const isNative = Boolean(
-        cap && (
-          (typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) ||
-          (cap.getPlatform && cap.getPlatform() !== 'web') ||
-          (FilesystemPlugin && SharePlugin)
-        )
-      );
-
-      if (isNative) {
-        try {
-          const writeTempCacheFile = async (filename, base64Data) => {
-            if (FilesystemPlugin && typeof FilesystemPlugin.writeFile === 'function') {
-              return await FilesystemPlugin.writeFile({
-                path: filename,
-                data: base64Data,
-                directory: 'CACHE'
-              });
-            }
-            if (cap && typeof cap.nativePromise === 'function') {
-              return await cap.nativePromise('Filesystem', 'writeFile', {
-                path: filename,
-                data: base64Data,
-                directory: 'CACHE'
-              });
-            }
-            return null;
-          };
-
-          const callNativeShare = async (payload) => {
-            if (SharePlugin && typeof SharePlugin.share === 'function') {
-              return await SharePlugin.share(payload);
-            }
-            if (cap && typeof cap.nativePromise === 'function') {
-              return await cap.nativePromise('Share', 'share', payload);
-            }
-            throw new Error('Share plugin unavailable');
-          };
-
-          const uris = [];
-          for (const item of items) {
-            const base64Data = (item.dataUrl.split(',')[1] || '').trim();
-            const writeRes = await writeTempCacheFile(item.filename, base64Data);
-            if (writeRes && writeRes.uri) {
-              uris.push(writeRes.uri);
-            }
-          }
-
-          if (uris.length > 0) {
-            if (uris.length === 1) {
-              await callNativeShare({
-                title: shareTitle || items[0].filename,
-                url: uris[0],
-                dialogTitle: '이미지 공유 및 저장'
-              });
-            } else {
-              await callNativeShare({
-                title: shareTitle || '캔버스 이미지 공유',
-                files: uris,
-                dialogTitle: '이미지 공유 및 저장'
-              });
-            }
-            return true;
-          }
-        } catch (capErr) {
-          const msg = String((capErr && (capErr.message || capErr)) || '');
-          if (msg.includes('cancel') || msg.includes('Cancel') || (capErr && capErr.name === 'AbortError')) {
-            return true;
-          }
-          if (screenshotSheetNotice) {
-            screenshotSheetNotice.textContent = `네이티브 공유 오류: ${msg}`;
-            screenshotSheetNotice.classList.remove('hidden');
-          }
-        }
-      }
-
-      // 2) 일반 웹 브라우저 환경: Web Share API 파일 공유
-      const files = items.map((it) => it.file);
-      if (typeof navigator.share === 'function') {
-        try {
-          if (!navigator.canShare || navigator.canShare({ files })) {
-            await navigator.share({
-              files,
-              title: shareTitle
-            });
-            return true;
-          }
-        } catch (err) {
-          if (err && err.name === 'AbortError') return true;
-        }
-      }
-      return false;
-    }
-
-    function downloadImageEntries(items) {
-      items.forEach((entry, idx) => {
-        setTimeout(() => {
-          const link = document.createElement('a');
-          link.href = entry.dataUrl;
-          link.download = entry.filename;
-          link.rel = 'noopener';
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          setTimeout(() => link.remove(), 2000);
-        }, idx * 250);
-      });
-    }
-
-    triggerSystemShareBtn.addEventListener('click', async () => {
-      if (!pendingExportItems.length) return;
-      const shared = await shareImageFilesNow(pendingExportItems, pendingExportItems[0].filename);
-      if (!shared) {
-        screenshotSheetNotice.textContent = '이 브라우저에서는 외부 앱 공유가 제한되어 기기에 직접 저장합니다.';
-        screenshotSheetNotice.classList.remove('hidden');
-        downloadImageEntries(pendingExportItems);
-      }
-    });
-
-    triggerDirectDownloadBtn.addEventListener('click', () => {
-      if (!pendingExportItems.length) return;
-      downloadImageEntries(pendingExportItems);
-      screenshotSheetNotice.textContent = `기기 저장소로 ${pendingExportItems.length}개 이미지 저장을 시작했습니다. (이미지를 길게 눌러 저장할 수도 있습니다)`;
-      screenshotSheetNotice.classList.remove('hidden');
-    });
-
-    function drawRoundedRectPath(ctx, x, y, w, h, r) {
-      const radius = Math.max(0, Math.min(r, w / 2, h / 2));
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(x, y, w, h, radius);
-      } else {
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + w - radius, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-        ctx.lineTo(x + w, y + h - radius);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-        ctx.lineTo(x + radius, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-        ctx.lineTo(x, y + radius);
-        ctx.quadraticCurveTo(x, y, x + radius, y);
-        ctx.closePath();
-      }
-    }
-
-    /**
-     * 오프라인 100% 자체 렌더링: 캔버스와 배치된 모달의 실제 DOM 좌표/스타일을 읽어 고해상도 스샷 생성
-     * (플로팅 팝업·버튼은 제외하고 캔버스 경계에 맞춰 클리핑)
-     */
-    function renderBoardToCanvasSync() {
-      const isDark = document.documentElement.classList.contains('dark');
-      const bgColor = isDark ? '#141218' : '#FEF7FF';
-      const dotColor = isDark ? '#49454F' : '#CAC4D0';
-
-      const boardRect = workspaceBoard.getBoundingClientRect();
-      const captureW = Math.max(1, Math.round(boardRect.width || window.innerWidth));
-      const captureH = Math.max(1, Math.round(boardRect.height || window.innerHeight));
-      const scale = 2;
-
-      const outCanvas = document.createElement('canvas');
-      outCanvas.width = captureW * scale;
-      outCanvas.height = captureH * scale;
-      const ctx = outCanvas.getContext('2d');
-      ctx.scale(scale, scale);
-
-      // 캔버스 경계 클리핑 (화면 바깥에 걸친 모달은 경계선에서 잘린 상태로 추출)
-      ctx.beginPath();
-      ctx.rect(0, 0, captureW, captureH);
-      ctx.clip();
-
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, captureW, captureH);
-
-      if (appSettings.showGrid) {
-        ctx.fillStyle = dotColor;
-        for (let gx = 8; gx < captureW; gx += 16) {
-          for (let gy = 8; gy < captureH; gy += 16) {
-            ctx.beginPath();
-            ctx.arc(gx, gy, 1.1, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-      }
-
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      const items = currentProject && Array.isArray(currentProject.modals) ? currentProject.modals : [];
-
-      items.forEach((item) => {
-        const tpl = COMPONENT_TEMPLATES[item.type] || COMPONENT_TEMPLATES['card-container'];
-        const layerEl = workspaceBoard.querySelector(`.modal-draggable[data-layer-id="${item.id}"]`);
-        const bodyBox = layerEl ? layerEl.querySelector('.modal-body-box') : null;
-        const rootCard = bodyBox ? bodyBox.firstElementChild : null;
-
-        const iw = typeof item.width === 'number' ? item.width : tpl.defaultWidth;
-        const ih = typeof item.height === 'number' ? item.height : tpl.defaultHeight;
-        const ix = Number(item.x) || 0;
-        const iy = bodyBox ? (Number(item.y) + bodyBox.offsetTop) : (Number(item.y) || 0);
-
-        ctx.save();
-
-        // 제스처 화살표 · 탭 손가락 렌더링
-        if (item.type && item.type.startsWith('gesture-')) {
-          if (item.type.startsWith('gesture-slide-')) {
-            ctx.fillStyle = 'rgba(99, 102, 241, 0.35)';
-            ctx.strokeStyle = 'rgba(99, 102, 241, 0.8)';
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            if (item.type === 'gesture-slide-up') {
-              ctx.moveTo(ix + iw * 0.5, iy + ih * 0.07);
-              ctx.lineTo(ix + iw * 0.92, iy + ih * 0.37);
-              ctx.lineTo(ix + iw * 0.68, iy + ih * 0.37);
-              ctx.lineTo(ix + iw * 0.68, iy + ih * 0.93);
-              ctx.lineTo(ix + iw * 0.32, iy + ih * 0.93);
-              ctx.lineTo(ix + iw * 0.32, iy + ih * 0.37);
-              ctx.lineTo(ix + iw * 0.08, iy + ih * 0.37);
-            } else if (item.type === 'gesture-slide-down') {
-              ctx.moveTo(ix + iw * 0.5, iy + ih * 0.93);
-              ctx.lineTo(ix + iw * 0.92, iy + ih * 0.63);
-              ctx.lineTo(ix + iw * 0.68, iy + ih * 0.63);
-              ctx.lineTo(ix + iw * 0.68, iy + ih * 0.07);
-              ctx.lineTo(ix + iw * 0.32, iy + ih * 0.07);
-              ctx.lineTo(ix + iw * 0.32, iy + ih * 0.63);
-              ctx.lineTo(ix + iw * 0.08, iy + ih * 0.63);
-            } else if (item.type === 'gesture-slide-left') {
-              ctx.moveTo(ix + iw * 0.07, iy + ih * 0.5);
-              ctx.lineTo(ix + iw * 0.37, iy + ih * 0.08);
-              ctx.lineTo(ix + iw * 0.37, iy + ih * 0.32);
-              ctx.lineTo(ix + iw * 0.93, iy + ih * 0.32);
-              ctx.lineTo(ix + iw * 0.93, iy + ih * 0.68);
-              ctx.lineTo(ix + iw * 0.37, iy + ih * 0.68);
-              ctx.lineTo(ix + iw * 0.37, iy + ih * 0.92);
-            } else {
-              ctx.moveTo(ix + iw * 0.93, iy + ih * 0.5);
-              ctx.lineTo(ix + iw * 0.63, iy + ih * 0.08);
-              ctx.lineTo(ix + iw * 0.63, iy + ih * 0.32);
-              ctx.lineTo(ix + iw * 0.07, iy + ih * 0.32);
-              ctx.lineTo(ix + iw * 0.07, iy + ih * 0.68);
-              ctx.lineTo(ix + iw * 0.63, iy + ih * 0.68);
-              ctx.lineTo(ix + iw * 0.63, iy + ih * 0.92);
-            }
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-          } else {
-            const cx = ix + iw / 2;
-            const cy = iy + ih * 0.36;
-            ctx.fillStyle = 'rgba(251, 191, 36, 0.35)';
-            ctx.strokeStyle = 'rgba(245, 158, 11, 0.85)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(cx, cy, 18, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            if (item.type === 'gesture-double-tap-finger') {
-              ctx.beginPath();
-              ctx.arc(cx, cy, 24, 0, Math.PI * 2);
-              ctx.stroke();
-            }
-            ctx.font = '32px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('👆', cx, iy + ih * 0.78);
-          }
-          ctx.restore();
-          return;
-        }
-
-        // 카드 / 모달 / 프레임 배경 스타일 계산
-        const computed = rootCard ? window.getComputedStyle(rootCard) : null;
-        const isDashed = item.type === 'empty-box';
-        const isTransparentFrame = item.type === 'empty-box' || item.type === 'empty-solid-rect';
-        const isSnackbar = item.type === 'snackbar' || item.type === 'tooltip-bubble';
-        const isFilledBtn = item.type === 'filled-button';
-        const isBadge = item.type === 'badge-chip';
-
-        let fillCol = isSnackbar
-          ? (isDark ? '#E6E0E9' : '#313033')
-          : isFilledBtn
-            ? (isDark ? '#D0BCFF' : '#6750A4')
-            : isBadge
-              ? (isDark ? '#F2B8B5' : '#B3261E')
-              : isTransparentFrame
-                ? (isDark ? 'rgba(33, 31, 38, 0.35)' : 'rgba(243, 237, 247, 0.35)')
-                : (isDark ? '#211F26' : '#F3EDF7');
-
-        if (computed && computed.backgroundColor && computed.backgroundColor !== 'rgba(0, 0, 0, 0)') {
-          fillCol = computed.backgroundColor;
-        }
-
-        const radius = (item.type === 'filled-button' || item.type === 'outlined-button' || item.type === 'search-bar' || item.type === 'badge-chip' || item.type === 'segmented-tabs' || item.type === 'pagination-bar' || item.type === 'stepper-counter')
-          ? Math.min(iw, ih) / 2
-          : item.type === 'device-frame'
-            ? 32
-            : 22;
-
-        // 그림자 효과
-        if (!isTransparentFrame) {
-          ctx.shadowColor = isDark ? 'rgba(0, 0, 0, 0.45)' : 'rgba(15, 23, 42, 0.12)';
-          ctx.shadowBlur = 14;
-          ctx.shadowOffsetY = 6;
-        }
-
-        drawRoundedRectPath(ctx, ix, iy, iw, ih, radius);
-        ctx.fillStyle = fillCol;
-        ctx.fill();
-
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetY = 0;
-
-        if (!isFilledBtn && !isSnackbar && !isBadge) {
-          ctx.strokeStyle = item.type === 'warning-modal'
-            ? (isDark ? 'rgba(242, 184, 181, 0.5)' : 'rgba(179, 38, 30, 0.45)')
-            : (isDark ? '#49454F' : '#CAC4D0');
-          ctx.lineWidth = isDashed ? 2 : 1.5;
-          if (isDashed) ctx.setLineDash([6, 4]);
-          drawRoundedRectPath(ctx, ix, iy, iw, ih, radius);
-          ctx.stroke();
-          ctx.setLineDash([]);
-        }
-
-        // 내부 카드 영역 클리핑 후 실제 DOM 자식 요소(버튼/입력창/텍스트) 위치 그대로 그리기
-        drawRoundedRectPath(ctx, ix, iy, iw, ih, radius);
-        ctx.clip();
-
-        if (bodyBox) {
-          const boxRect = bodyBox.getBoundingClientRect();
-
-          // 내부 서브 박스(버튼, 인풋, 칩 등) 시각적 윤곽 그리기
-          bodyBox.querySelectorAll('button, input, textarea, [class*="rounded-"]').forEach((subEl) => {
-            if (subEl === rootCard || subEl.classList.contains('resize-handle')) return;
-            const sRect = subEl.getBoundingClientRect();
-            if (sRect.width < 8 || sRect.height < 8) return;
-            const sStyle = window.getComputedStyle(subEl);
-            const sBg = sStyle.backgroundColor;
-            if (!sBg || sBg === 'rgba(0, 0, 0, 0)' || sBg === 'transparent') return;
-
-            const sx = ix + (sRect.left - boxRect.left);
-            const sy = iy + (sRect.top - boxRect.top);
-            const sr = parseFloat(sStyle.borderRadius) || 10;
-            drawRoundedRectPath(ctx, sx, sy, sRect.width, sRect.height, sr);
-            ctx.fillStyle = sBg;
-            ctx.fill();
-          });
-
-          // 내부 모든 텍스트 노드를 실제 렌더링 좌표 그대로 그리기
-          const walker = document.createTreeWalker(bodyBox, NodeFilter.SHOW_TEXT, null);
-          let tNode;
-          while ((tNode = walker.nextNode())) {
-            const rawTxt = tNode.nodeValue.trim();
-            if (!rawTxt) continue;
-            const parentEl = tNode.parentElement;
-            if (!parentEl || parentEl.closest('.resize-handle') || parentEl.classList.contains('hidden')) continue;
-
-            const range = document.createRange();
-            range.selectNodeContents(tNode);
-            const tRect = range.getBoundingClientRect();
-            if (tRect.width === 0 || tRect.height === 0) continue;
-
-            const pStyle = window.getComputedStyle(parentEl);
-            const fontSize = parseFloat(pStyle.fontSize) || 12;
-            const fontWeight = pStyle.fontWeight || '500';
-            ctx.font = `${fontWeight} ${fontSize}px "Noto Sans KR", Inter, sans-serif`;
-            ctx.fillStyle = pStyle.color || (isDark ? '#E6E0E9' : '#1D1B20');
-            ctx.textBaseline = 'middle';
-
-            const tx = ix + (tRect.left - boxRect.left);
-            const ty = iy + (tRect.top - boxRect.top) + tRect.height / 2;
-            ctx.fillText(rawTxt, tx, ty, Math.max(20, tRect.width + 6));
-          }
-
-          // 입력창 placeholder 텍스트 그리기
-          bodyBox.querySelectorAll('input[placeholder], textarea[placeholder]').forEach((inp) => {
-            const valOrPh = inp.value || inp.getAttribute('placeholder') || '';
-            if (!valOrPh) return;
-            const iRect = inp.getBoundingClientRect();
-            const iStyle = window.getComputedStyle(inp);
-            const fontSize = parseFloat(iStyle.fontSize) || 12;
-            ctx.font = `400 ${fontSize}px "Noto Sans KR", Inter, sans-serif`;
-            ctx.fillStyle = inp.value
-              ? (iStyle.color || (isDark ? '#E6E0E9' : '#1D1B20'))
-              : (isDark ? '#938F99' : '#79747E');
-            ctx.textBaseline = 'middle';
-            const tx = ix + (iRect.left - boxRect.left) + (parseFloat(iStyle.paddingLeft) || 8);
-            const ty = iy + (iRect.top - boxRect.top) + iRect.height / 2;
-            ctx.fillText(valOrPh, tx, ty, Math.max(20, iRect.width - 16));
-          });
-        } else {
-          ctx.fillStyle = isDark ? '#E6E0E9' : '#1D1B20';
-          ctx.font = 'bold 13px "Noto Sans KR", Inter, sans-serif';
-          ctx.fillText(String(item.text || item.label || tpl.label), ix + 16, iy + 28, Math.max(32, iw - 32));
-        }
-
-        ctx.restore();
-      });
-
-      return outCanvas;
-    }
-
-    async function captureCurrentBoardPng(filename) {
-      const baseName = filename.replace(/\.(png|jpe?g)$/i, '');
-      const outCanvas = renderBoardToCanvasSync();
-      const entry = exportCanvasToImageEntry(outCanvas, baseName, selectedExportFormat);
-      const shared = await shareImageFilesNow([entry], entry.filename);
-      if (!shared) {
-        openScreenshotShareSheet([entry]);
-      }
-      return true;
-    }
-
-    exportSingleCanvasBtn.addEventListener('click', async () => {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject) return;
-      const safeName = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
-      const baseFilename = `${safeName}_canvas_${activeCanvasIndex + 1}`;
-
-      setExportImagePopupState(false);
-      const outCanvas = renderBoardToCanvasSync();
-      const entry = exportCanvasToImageEntry(outCanvas, baseFilename, selectedExportFormat);
-
-      // 1) 클릭 직후 시스템 파일 공유 팝업(블루투스, 카카오톡 등) 즉시 호출
-      const shared = await shareImageFilesNow([entry], entry.filename);
-      // 2) 시스템 공유가 제한된 환경이면 앱 내 이미지 미리보기·공유/저장 시트 표시
-      if (!shared) {
-        openScreenshotShareSheet([entry]);
-      }
-    });
-
-    exportAllCanvasesBtn.addEventListener('click', async () => {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject) return;
-      const canvases = ensureProjectCanvases(currentProject);
-      const originalIndex = activeCanvasIndex;
-      const safeName = (currentProject.name || 'canvas').replace(/[\\/:*?"<>|]/g, '_');
-
-      setExportImagePopupState(false);
-      const generatedEntries = [];
-
-      for (let i = 0; i < canvases.length; i++) {
-        activeCanvasIndex = i;
-        ensureProjectCanvases(currentProject);
-        renderWorkspaceLayers();
-        const outCanvas = renderBoardToCanvasSync();
-        const entry = exportCanvasToImageEntry(outCanvas, `${safeName}_canvas_${i + 1}`, selectedExportFormat);
-        generatedEntries.push(entry);
-      }
-
-      activeCanvasIndex = originalIndex;
-      ensureProjectCanvases(currentProject);
-      updateCanvasNavigationUI();
-      renderWorkspaceLayers();
-
-      const shared = await shareImageFilesNow(generatedEntries, `${safeName}_canvases`);
-      if (!shared) {
-        openScreenshotShareSheet(generatedEntries);
-      }
-    });
-
-    workspaceNewCanvasBtn.addEventListener('click', () => {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject) return;
-      const canvases = ensureProjectCanvases(currentProject);
-      if (activeCanvasIndex < canvases.length - 1) {
-        switchCanvasWithSlide(activeCanvasIndex + 1, 'next');
-      } else {
-        canvases.push({ id: 'canvas_' + Date.now(), modals: [] });
-        saveProjects();
-        renderProjects();
-        switchCanvasWithSlide(canvases.length - 1, 'next');
-      }
-    });
-
-    function setCanvasListPopupState(open) {
-      isCanvasListPopupOpen = open;
-      if (isCanvasListPopupOpen) {
-        renderCanvasListPopup();
-        canvasListPopupOverlay.classList.remove('hidden');
-        canvasListPopupOverlay.classList.add('flex');
-      } else {
-        canvasListPopupOverlay.classList.add('hidden');
-        canvasListPopupOverlay.classList.remove('flex');
-      }
-    }
-
-    function renderCanvasListPopup() {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject) return;
-      const canvases = ensureProjectCanvases(currentProject);
-      canvasListContainer.innerHTML = '';
-
-      canvases.forEach((cv, idx) => {
-        const isCurrent = idx === activeCanvasIndex;
-        const row = document.createElement('div');
-        row.className = `flex items-center justify-between p-3 rounded-xl border transition cursor-pointer ${
-          isCurrent
-            ? 'bg-indigo-50/80 dark:bg-emerald-950/40 border-indigo-300 dark:border-emerald-700'
-            : 'bg-slate-50 dark:bg-slate-800/70 border-slate-200/70 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-800'
-        }`;
-        row.innerHTML = `
-          <div>
-            <p class="text-xs font-bold text-slate-900 dark:text-slate-100">캔버스 ${idx + 1} ${isCurrent ? '· 현재' : ''}</p>
-            <p class="text-[10px] text-slate-500 dark:text-slate-400">배치된 레이어 ${(cv.modals || []).length}개</p>
-          </div>
-          ${canvases.length > 1 ? `<button type="button" data-del-canvas="${idx}" class="px-2 py-1 text-[11px] font-semibold text-rose-500 hover:bg-rose-500/10 rounded-lg cursor-pointer">삭제</button>` : ''}
-        `;
-        row.addEventListener('click', (e) => {
-          const delBtn = e.target.closest('[data-del-canvas]');
-          if (delBtn) {
-            e.stopPropagation();
-            const delIdx = Number(delBtn.dataset.delCanvas);
-            canvases.splice(delIdx, 1);
-            if (activeCanvasIndex >= canvases.length) {
-              activeCanvasIndex = Math.max(0, canvases.length - 1);
-            }
-            ensureProjectCanvases(currentProject);
-            saveProjects();
-            updateCanvasNavigationUI();
-            renderWorkspaceLayers();
-            renderCanvasListPopup();
-            renderProjects();
-            return;
-          }
-          setCanvasListPopupState(false);
-          if (idx !== activeCanvasIndex) {
-            switchCanvasWithSlide(idx, idx > activeCanvasIndex ? 'next' : 'prev');
-          }
+        uiControls.forEach((ctrl) => {
+          if (ctrl) ctrl.classList.add('hidden');
         });
-        canvasListContainer.appendChild(row);
-      });
+        if (keepActionHint && actionLinkHintBubble) {
+          actionLinkHintBubble.classList.remove('hidden');
+        }
+      } else {
+        workspaceUiToggleBtn.classList.remove('hidden');
+        const mainControls = [
+          workspaceTitleBubble,
+          workspaceSettingsBtn,
+          workspaceNewCanvasBtn,
+          workspaceUndoBtn,
+          workspaceRedoBtn,
+          workspaceBackBtn,
+          workspaceAddBtn
+        ];
+        mainControls.forEach((ctrl) => {
+          if (ctrl) ctrl.classList.toggle('hidden', isWorkspaceUiHidden);
+        });
+        updateCanvasNavigationUI();
+      }
     }
 
-    workspaceTitleBtn.addEventListener('click', () => setCanvasListPopupState(true));
-    closeCanvasListPopupBtn.addEventListener('click', () => setCanvasListPopupState(false));
-    canvasListPopupOverlay.addEventListener('click', (e) => {
-      if (e.target === canvasListPopupOverlay) setCanvasListPopupState(false);
-    });
-    addCanvasFromListBtn.addEventListener('click', () => {
-      const currentProject = projects.find((p) => p.id === activeProjectId);
-      if (!currentProject) return;
-      const canvases = ensureProjectCanvases(currentProject);
-      canvases.push({ id: 'canvas_' + Date.now(), modals: [] });
-      saveProjects();
-      renderProjects();
-      setCanvasListPopupState(false);
-      switchCanvasWithSlide(canvases.length - 1, 'next');
-    });
-
-    // =========================================================================
-    // UI 숨김 토글 (모달 단독 작동 테스트 모드)
-    // =========================================================================
     function setWorkspaceUiHiddenState(hidden) {
       isWorkspaceUiHidden = Boolean(hidden);
       workspaceUiEyeIcon.classList.toggle('hidden', isWorkspaceUiHidden);
@@ -4291,7 +3863,7 @@
     });
 
     function setGesturePopupState(open) {
-      isGesturePopupOpen = open;
+      isGesturePopupOpen = Boolean(open);
       if (isGesturePopupOpen) {
         setWorkspaceMenuState(false);
         gesturePopupOverlay.classList.remove('hidden');
@@ -4310,13 +3882,76 @@
     gesturePopupOverlay.addEventListener('click', (e) => {
       if (e.target === gesturePopupOverlay) setGesturePopupState(false);
     });
-
     document.querySelectorAll('.gesture-pick-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const gType = btn.dataset.gestureType;
         if (gType) addComponentToWorkspace(gType);
         setGesturePopupState(false);
       });
+    });
+
+    function openActionLinkEditor(itemId) {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      if (!currentProject) return;
+      const canvases = ensureProjectCanvases(currentProject);
+      const item = currentProject.modals.find((m) => m.id === itemId);
+      if (!item) return;
+
+      editingActionItemId = itemId;
+      actionTargetCanvasList.innerHTML = '';
+
+      canvases.forEach((cv, idx) => {
+        const isLinked = item.targetCanvasId === cv.id;
+        const isSelf = idx === activeCanvasIndex;
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = `w-full flex items-center justify-between p-3 rounded-xl border text-left transition cursor-pointer ${
+          isLinked
+            ? 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-400 dark:border-rose-500'
+            : 'bg-slate-50 dark:bg-slate-800/70 border-slate-200/70 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-800'
+        }`;
+        row.innerHTML = `
+          <div>
+            <p class="text-xs font-bold text-slate-900 dark:text-slate-100">캔버스 ${idx + 1} ${isSelf ? '(현재 캔버스)' : ''}</p>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400">배치된 요소 ${(cv.modals || []).length}개</p>
+          </div>
+          <span class="text-[11px] font-bold ${isLinked ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400 dark:text-slate-500'}">
+            ${isLinked ? '✓ 연결됨' : '선택'}
+          </span>
+        `;
+        row.addEventListener('click', () => {
+          const beforeSnapshot = JSON.stringify(currentProject.modals || []);
+          item.targetCanvasId = cv.id;
+          item.text = `캔버스 ${idx + 1}`;
+          pushUndoSnapshot(beforeSnapshot);
+          saveProjects();
+          renderWorkspaceLayers();
+          closeActionLinkEditor();
+        });
+        actionTargetCanvasList.appendChild(row);
+      });
+
+      isActionFlowPopupOpen = true;
+      actionFlowPopupOverlay.classList.remove('hidden');
+      actionFlowPopupOverlay.classList.add('flex');
+    }
+
+    function closeActionLinkEditor() {
+      editingActionItemId = null;
+      isActionFlowPopupOpen = false;
+      actionFlowPopupOverlay.classList.add('hidden');
+      actionFlowPopupOverlay.classList.remove('flex');
+    }
+
+    openActionFlowPopupBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setWorkspaceMenuState(false);
+      addComponentToWorkspace('action-hotspot');
+    });
+    closeActionFlowPopupBtn.addEventListener('click', closeActionLinkEditor);
+    cancelActionLinkBtn.addEventListener('click', closeActionLinkEditor);
+    actionFlowPopupOverlay.addEventListener('click', (e) => {
+      if (e.target === actionFlowPopupOverlay) closeActionLinkEditor();
     });
 
     function setLayerPopupState(open) {
@@ -4427,6 +4062,89 @@
     closeModalListPopupBtn.addEventListener('click', () => setModalListPopupState(false));
     modalListPopupOverlay.addEventListener('click', (e) => {
       if (e.target === modalListPopupOverlay) setModalListPopupState(false);
+    });
+
+    function setCanvasListPopupState(open) {
+      isCanvasListPopupOpen = Boolean(open);
+      if (isCanvasListPopupOpen) {
+        setWorkspaceMenuState(false);
+        renderCanvasListPopup();
+        canvasListPopupOverlay.classList.remove('hidden');
+        canvasListPopupOverlay.classList.add('flex');
+      } else {
+        canvasListPopupOverlay.classList.add('hidden');
+        canvasListPopupOverlay.classList.remove('flex');
+      }
+    }
+
+    function renderCanvasListPopup() {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      if (!currentProject) return;
+      const canvases = ensureProjectCanvases(currentProject);
+      canvasListContainer.innerHTML = '';
+
+      canvases.forEach((cv, idx) => {
+        const isCurrent = idx === activeCanvasIndex;
+        const row = document.createElement('div');
+        row.className = `flex items-center justify-between gap-2 p-3 rounded-xl border transition cursor-pointer ${
+          isCurrent
+            ? 'bg-indigo-50/80 dark:bg-emerald-950/40 border-indigo-400 dark:border-emerald-500'
+            : 'bg-slate-50 dark:bg-slate-800/70 border-slate-200/70 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-800'
+        }`;
+        row.innerHTML = `
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">캔버스 ${idx + 1}</p>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400">배치된 요소 ${(cv.modals || []).length}개</p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${isCurrent ? '<span class="text-[10px] font-bold text-indigo-600 dark:text-emerald-400 px-1.5">현재</span>' : ''}
+            ${canvases.length > 1 ? '<button type="button" data-del-canvas="1" class="px-2 py-1 text-[11px] rounded-lg text-rose-500 hover:bg-rose-500/10 cursor-pointer" title="캔버스 삭제">✕</button>' : ''}
+          </div>
+        `;
+
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('[data-del-canvas]')) {
+            e.stopPropagation();
+            if (canvases.length <= 1) return;
+            canvases.splice(idx, 1);
+            if (activeCanvasIndex >= canvases.length) {
+              activeCanvasIndex = canvases.length - 1;
+            }
+            ensureProjectCanvases(currentProject);
+            saveProjects();
+            updateCanvasNavigationUI();
+            renderWorkspaceLayers();
+            renderProjects();
+            renderCanvasListPopup();
+            return;
+          }
+          setCanvasListPopupState(false);
+          if (idx !== activeCanvasIndex) {
+            switchCanvasWithSlide(idx, idx > activeCanvasIndex ? 'next' : 'prev');
+          }
+        });
+
+        canvasListContainer.appendChild(row);
+      });
+    }
+
+    workspaceTitleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCanvasListPopupState(true);
+    });
+    closeCanvasListPopupBtn.addEventListener('click', () => setCanvasListPopupState(false));
+    canvasListPopupOverlay.addEventListener('click', (e) => {
+      if (e.target === canvasListPopupOverlay) setCanvasListPopupState(false);
+    });
+    addCanvasFromListBtn.addEventListener('click', () => {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      if (!currentProject) return;
+      const canvases = ensureProjectCanvases(currentProject);
+      canvases.push({ id: 'canvas_' + Date.now(), modals: [] });
+      saveProjects();
+      renderProjects();
+      setCanvasListPopupState(false);
+      switchCanvasWithSlide(canvases.length - 1, 'next');
     });
 
     // =========================================================================
@@ -4699,6 +4417,7 @@
       setLayerPopupState(false);
       setModalListPopupState(false);
       setGesturePopupState(false);
+      closeActionLinkEditor();
       setExportImagePopupState(false);
       setCanvasListPopupState(false);
       setWorkspaceSettingsState(false);
@@ -4711,6 +4430,92 @@
       fabSettingsBtn.classList.remove('hidden');
       renderProjects();
     }
+
+    function setWorkspaceSettingsState(open) {
+      isWorkspaceSettingsOpen = Boolean(open);
+      if (isWorkspaceSettingsOpen) {
+        setWorkspaceMenuState(false);
+        applySettingsToUI();
+        workspaceSettingsOverlay.classList.remove('hidden');
+        workspaceSettingsOverlay.classList.add('flex');
+        workspaceSettingsIcon.classList.add('rotate-90');
+      } else {
+        workspaceSettingsOverlay.classList.add('hidden');
+        workspaceSettingsOverlay.classList.remove('flex');
+        workspaceSettingsIcon.classList.remove('rotate-90');
+      }
+    }
+
+    workspaceSettingsBtn.addEventListener('click', () => setWorkspaceSettingsState(!isWorkspaceSettingsOpen));
+    closeWorkspaceSettingsBtn.addEventListener('click', () => setWorkspaceSettingsState(false));
+    workspaceSettingsOverlay.addEventListener('click', (e) => {
+      if (e.target === workspaceSettingsOverlay) setWorkspaceSettingsState(false);
+    });
+
+    toggleCanvasSnapCheckbox.addEventListener('change', () => {
+      appSettings.canvasSnap = toggleCanvasSnapCheckbox.checked;
+      saveSettings();
+    });
+
+    toggleModalSnapCheckbox.addEventListener('change', () => {
+      appSettings.modalSnap = toggleModalSnapCheckbox.checked;
+      saveSettings();
+    });
+
+    document.querySelectorAll('.snap-gap-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        appSettings.snapGap = Number(btn.dataset.gap) || 16;
+        applySettingsToUI();
+        saveSettings();
+      });
+    });
+
+    document.querySelectorAll('.accent-color-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        appSettings.accentColor = btn.dataset.accent || 'indigo';
+        applySettingsToUI();
+        saveSettings();
+        renderWorkspaceLayers();
+      });
+    });
+
+    workspaceUndoBtn.addEventListener('click', () => {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      if (!currentProject || undoStack.length === 0) return;
+      ensureProjectCanvases(currentProject);
+      redoStack.push(JSON.stringify(currentProject.modals || []));
+      currentProject.modals = JSON.parse(undoStack.pop());
+      currentProject.canvases[activeCanvasIndex].modals = currentProject.modals;
+      selectedModalId = null;
+      updateHistoryButtons();
+      saveProjects();
+      renderWorkspaceLayers();
+      renderProjects();
+    });
+
+    workspaceRedoBtn.addEventListener('click', () => {
+      const currentProject = projects.find((p) => p.id === activeProjectId);
+      if (!currentProject || redoStack.length === 0) return;
+      ensureProjectCanvases(currentProject);
+      undoStack.push(JSON.stringify(currentProject.modals || []));
+      currentProject.modals = JSON.parse(redoStack.pop());
+      currentProject.canvases[activeCanvasIndex].modals = currentProject.modals;
+      selectedModalId = null;
+      updateHistoryButtons();
+      saveProjects();
+      renderWorkspaceLayers();
+      renderProjects();
+    });
+
+    workspaceBoard.addEventListener('pointerdown', (e) => {
+      if (e.target === workspaceBoard) {
+        if (isWorkspaceMenuOpen) setWorkspaceMenuState(false);
+        if (selectedModalId !== null) {
+          selectedModalId = null;
+          renderWorkspaceLayers();
+        }
+      }
+    });
 
     workspaceBackBtn.addEventListener('click', closeProjectWorkspace);
 
